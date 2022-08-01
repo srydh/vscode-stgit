@@ -1,0 +1,60 @@
+{
+	"$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+	"name": "StGit",
+	"patterns": [
+		{ "include": "#strings" },
+		{ "include": "#outer" }
+	],
+	"repository": {
+		"strings": {
+			"name": "string.quoted.double.stgit",
+			"begin": "\"",
+			"end": "\"",
+			"patterns": [{
+				"name": "constant.character.escape.stgit",
+				"match": "\\\\."
+			}]
+		},
+		"desc": {
+			"patterns": [{
+				"match": "\\[[A-Za-z0-9 ]*\\]",
+				"name": "keyword.operator"
+			}, {
+				"match": "\\(empty\\) ",
+				"name": "invalid"
+			}]
+		},
+		"outer": {
+			"patterns": [{
+				"begin": "^[+][* ]",
+				"end": "$",
+				"contentName": "entity.name.function",
+				"patterns": [{ "include": "#desc" }]
+			}, {
+				"begin": "^>[* ]",
+				"end": "$",
+				"contentName": "meta.preprocessor",
+				"patterns": [{ "include": "#desc" }]
+			}, {
+				"begin": "^-[* ]",
+				"end": "$",
+				"contentName": "string"
+			}, {
+				"begin": "^![* ]",
+				"end": "$",
+				"contentName": "invalid"
+			}, {
+				"match": "^ *(Index|Work Tree)",
+				"name": "variable"
+			}, {
+				"match": "^ +[a-zA-Z]+",
+				"name": "invalid"
+			}, {
+				"match": "^ +<.*>",
+				"name": "comment"
+			}
+
+		]}
+	},
+	"scopeName": "source.stgit"
+}
