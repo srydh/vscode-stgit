@@ -1,3 +1,6 @@
+// Copyright (C) 2022, Samuel Rydh <samuelrydh@gmail.com>
+// This code is licensed under the BSD 2-Clause license.
+
 import * as vscode from 'vscode';
 import { workspace, window, Uri, commands } from 'vscode';
 import { spawn } from 'child_process';
