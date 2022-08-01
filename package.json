@@ -141,6 +141,10 @@
             "category": "StGit",
             "title": "Create New Patch"
         }, {
+            "command": "stgit.commitOrUncommitPatches",
+            "category": "StGit",
+            "title": "Convert Patches to GIT Commits (or vice versa)"
+        }, {
             "command": "stgit.toggleChanges",
             "category": "StGit",
             "title": "Move Changes Between Index and Work Tree"
@@ -252,6 +256,10 @@
         }, {
             "key": "c",
             "command": "stgit.createPatch",
+            "when": "resourceScheme == stgit && editorTextFocus"
+        }, {
+            "key": "ctrl-c ctrl-c",
+            "command": "stgit.commitOrUncommitPatches",
             "when": "resourceScheme == stgit && editorTextFocus"
         }, {
             "key": "h",

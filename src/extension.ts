@@ -192,7 +192,7 @@ function sleep(ms: number){
 }
 
 class Stgit {
-    private history: History[] = [];
+    private history: Patch[] = [];
     private applied: Patch[] = [];
     private popped: Patch[] = [];
     private index: Patch = new Index();
@@ -645,6 +645,19 @@ class Stgit {
             this.fetchHistory(historySize);
         }
     }
+    async commitOrUncommitPatches() {
+        const curPatch = this.curPatch;
+        if (curPatch?.kind === 'H') {
+            const n = this.history.length - this.history.indexOf(curPatch);
+            await run('stg', ['uncommit', `-n${n}`]);
+        } else if (curPatch?.kind === '+' || curPatch?.kind === '>') {
+            const n = this.applied.indexOf(curPatch) + 1;
+            await run('stg', ['commit', `-n${n}`]);
+        } else {
+            return;
+        }
+        this.reload();
+    }
     provideTextBlob(uri: vscode.Uri): Promise<string> {
         const sha = uri.fragment;
         return run('git', ['show', sha], {trim: false});
@@ -781,6 +794,8 @@ class StgitExtension {
             cmd('deletePatches', () => this.stgit?.deletePatches()),
             cmd('openDiff', () => this.stgit?.openDiff()),
             cmd('setHistorySize', () => this.stgit?.setHistorySize()),
+            cmd('commitOrUncommitPatches',
+                () => this.stgit?.commitOrUncommitPatches()),
             cmd('revertChanges', () => this.stgit?.revertChanges()),
             cmd('undo', () => this.stgit?.undo()),
             cmd('hardUndo', () => this.stgit?.hardUndo()),
