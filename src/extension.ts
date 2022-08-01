@@ -171,9 +171,11 @@ class History extends Patch {
         const tree = await run('git', ['diff-tree', this.sha]);
         this.makeDeltas(tree);
     }
-    static async fromRev(rev: string, count=5) {
+    static async fromRev(rev: string, limit: number) {
+        if (limit === 0)
+            return [];
         const log = await run('git', [
-            'log', '--reverse', '--first-parent', `-n${count}`,
+            'log', '--reverse', '--first-parent', `-n${limit}`,
             '--format=%H\t%s', rev]);
         if (log === "")
             return [];
@@ -197,6 +199,7 @@ class Stgit {
     private workTree: Patch = new WorkTree();
     private header: string[] = ["StGit", ""];
     private needRepair = false;
+    private historySize = 5;
 
     // start of history
     private baseSha: string | null = null;
@@ -226,7 +229,7 @@ class Stgit {
         const args = ['series', '-ae', '--description'];
         const s = await run('stg', args);
 
-        this.fetchHistory();
+        this.fetchHistory(this.historySize);
 
         const m = new Map(this.patches.map(p => [p.label, p]));
         const patches = [];
@@ -262,11 +265,13 @@ class Stgit {
 
         this.checkForRepair();
     }
-    async fetchHistory() {
+    async fetchHistory(historySize: number) {
         const sha = await run('stg', ['id', '--', '{base}']);
-        if (sha !== this.baseSha) {
+        if (sha !== this.baseSha || this.historySize !== historySize) {
             this.baseSha = sha;
-            this.history = await History.fromRev(this.baseSha);
+            this.historySize = historySize;
+            this.history = await History.fromRev(
+                this.baseSha, this.historySize);
             this.notifyDirty();
         }
     }
@@ -618,8 +623,21 @@ class Stgit {
         await run('stg', ['redo']);
         this.reload();
     }
-    popPatch() {
-        this.notifyDirty();
+    async popCurrentPatch() {
+        await run('stg', ['pop']);
+        this.reload();
+    }
+    async pushNextPatch() {
+        await run('stg', ['push']);
+        this.reload();
+    }
+    async setHistorySize() {
+        const numStr = await vscode.window.showQuickPick([
+            '0', '1', '5', '10', '15', '20', '25', '30', '35', '40']);
+        if (numStr) {
+            const historySize = parseInt(numStr);
+            this.fetchHistory(historySize);
+        }
     }
     provideTextBlob(uri: vscode.Uri): Promise<string> {
         const sha = uri.fragment;
@@ -739,7 +757,6 @@ class StgitExtension {
             cmd('reload', () => this.stgit?.reload()),
             cmd('resolveConflict', () => this.stgit?.resolveConflict()),
             cmd('gotoPatch', () => this.stgit?.gotoPatch()),
-            cmd('pop', () => this.stgit?.popPatch()),
             cmd('markPatch', () => this.stgit?.markPatch()),
             cmd('unmarkPatch', () => this.stgit?.unmarkPatch()),
             cmd('toggleExpand', () => this.stgit?.toggleExpand()),
@@ -747,6 +764,8 @@ class StgitExtension {
             cmd('createPatch', () => this.stgit?.createPatch()),
             cmd('newPatch', () => this.stgit?.newPatch()),
             cmd('pushOrPopPatches', () => this.stgit?.pushOrPopPatches()),
+            cmd('pushNextPatch', () => this.stgit?.pushNextPatch()),
+            cmd('popCurrentPatch', () => this.stgit?.popCurrentPatch()),
             cmd('movePatchesTo', () => this.stgit?.movePatchesTo()),
             cmd('commentCreatePatch', () => this.stgit?.commentCreatePatch()),
             cmd('completePatchEdit', () => this.stgit?.completePatchEdit()),
@@ -755,6 +774,7 @@ class StgitExtension {
             cmd('squashPatches', () => this.stgit?.squashPatches()),
             cmd('deletePatches', () => this.stgit?.deletePatches()),
             cmd('openDiff', () => this.stgit?.openDiff()),
+            cmd('setHistorySize', () => this.stgit?.setHistorySize()),
             cmd('revertChanges', () => this.stgit?.revertChanges()),
             cmd('undo', () => this.stgit?.undo()),
             cmd('hardUndo', () => this.stgit?.hardUndo()),

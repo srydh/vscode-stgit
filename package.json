@@ -117,6 +117,18 @@
             "category": "StGit",
             "title": "Push or Pop Patches"
         }, {
+            "command": "stgit.pushNextPatch",
+            "category": "StGit",
+            "title": "Push Next Patch onto Stack"
+        }, {
+            "command": "stgit.popCurrentPatch",
+            "category": "StGit",
+            "title": "Pop Current Patch from Stack"
+        }, {
+            "command": "stgit.setHistorySize",
+            "category": "StGit",
+            "title": "Set History Size"
+        }, {
             "command": "stgit.movePatchesTo",
             "category": "StGit",
             "title": "Move Selected Patches"
@@ -182,6 +194,18 @@
             "command": "stgit.pushOrPopPatches",
             "when": "resourceScheme == stgit && editorTextFocus"
         }, {
+            "key": "shift+.",
+            "command": "stgit.pushNextPatch",
+            "when": "resourceScheme == stgit && editorTextFocus"
+        }, {
+            "key": "shift+,",
+            "command": "stgit.popCurrentPatch",
+            "when": "resourceScheme == stgit && editorTextFocus"
+        }, {
+            "key": "shift+h",
+            "command": "stgit.setHistorySize",
+            "when": "resourceScheme == stgit && editorTextFocus"
+        }, {
             "key": "shift+m",
             "command": "stgit.movePatchesTo",
             "when": "resourceScheme == stgit && editorTextFocus"
@@ -196,10 +220,6 @@
         }, {
             "key": "m",
             "command": "stgit.markPatch",
-            "when": "resourceScheme == stgit && editorTextFocus"
-        }, {
-            "key": "p",
-            "command": "stgit.pop",
             "when": "resourceScheme == stgit && editorTextFocus"
         }, {
             "key": "i",
