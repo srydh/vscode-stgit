@@ -72,9 +72,13 @@
             "category": "StGit",
             "title": "Delete Patches"
         }, {
-            "command": "stgit.openDiff",
+            "command": "stgit.openDiffEditor",
             "category": "StGit",
-            "title": "Show Diff"
+            "title": "Open VSCode Diff Editor"
+        }, {
+            "command": "stgit.showDiff",
+            "category": "StGit",
+            "title": "Show [Emacs Style] Diff"
         }, {
             "command": "stgit.markPatch",
             "category": "StGit",
@@ -286,8 +290,12 @@
             "command": "stgit.deletePatches",
             "when": "resourceScheme == stgit && editorTextFocus"
         }, {
+            "key": "shift+=",
+            "command": "stgit.openDiffEditor",
+            "when": "resourceScheme == stgit && editorTextFocus"
+        }, {
             "key": "=",
-            "command": "stgit.openDiff",
+            "command": "stgit.showDiff",
             "when": "resourceScheme == stgit && editorTextFocus"
         }, {
             "key": "ctrl+c ctrl+i",

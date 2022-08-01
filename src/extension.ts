@@ -476,7 +476,7 @@ class Stgit {
             this.reload();
         }
     }
-    async openDiff() {
+    async openDiffEditor() {
         const delta = this.curChange;
         if (delta) {
             const s = `stgit-blob:///${delta.path}`;
@@ -492,6 +492,24 @@ class Stgit {
             }
             vscode.commands.executeCommand("vscode.diff",
                 srcUri, dstUri, `Diff ${delta.path}`, opts);
+        }
+    }
+    async showDiff() {
+        const delta = this.curChange;
+        if (delta) {
+            const s = `stgit-diff:///${delta.path}#${delta.srcSha}`;
+            const uri = vscode.Uri.parse(s);
+            const doc = await vscode.workspace.openTextDocument(uri);
+            if (doc) {
+                vscode.languages.setTextDocumentLanguage(doc, 'diff');
+                const opts: vscode.TextDocumentShowOptions = {
+                    viewColumn: this.alternateViewColumn,
+                    preview: true,
+                    preserveFocus: true,
+                };
+                vscode.window.showTextDocument(doc, opts);
+                vscode.commands.executeCommand('stgit.open');
+            }
         }
     }
     async help() {
@@ -664,6 +682,11 @@ class Stgit {
         const sha = uri.fragment;
         return run('git', ['show', sha], {trim: false});
     }
+    provideDiff(uri: vscode.Uri): Promise<string> {
+        const sha = uri.fragment;
+        const path = uri.path.slice(1);
+        return run('git', ['diff', sha, '--', path], {trim: false});
+    }
     private moveCursorToNextPatch() {
         const list = this.patches;
         const curPatch = this.curPatch;
@@ -756,11 +779,18 @@ class StgitExtension {
                 return this.stgit?.provideTextBlob(uri) ?? "";
             }
         };
+        const diffProvider: vscode.TextDocumentContentProvider = {
+            provideTextDocumentContent: (uri, token) => {
+                return this.stgit?.provideDiff(uri) ?? "";
+            }
+        };
         const subscriptions = context.subscriptions;
         subscriptions.push(
             workspace.registerTextDocumentContentProvider('stgit', provider),
             workspace.registerTextDocumentContentProvider(
                 'stgit-blob', blobProvider),
+            workspace.registerTextDocumentContentProvider(
+                'stgit-diff', diffProvider),
         );
         function cmd(cmd: string, func: () => void) {
             return commands.registerTextEditorCommand(`stgit.${cmd}`, func);
@@ -794,7 +824,8 @@ class StgitExtension {
             cmd('editCommitMessage', () => this.stgit?.editCommitMessage()),
             cmd('squashPatches', () => this.stgit?.squashPatches()),
             cmd('deletePatches', () => this.stgit?.deletePatches()),
-            cmd('openDiff', () => this.stgit?.openDiff()),
+            cmd('openDiffEditor', () => this.stgit?.openDiffEditor()),
+            cmd('showDiff', () => this.stgit?.showDiff()),
             cmd('setHistorySize', () => this.stgit?.setHistorySize()),
             cmd('commitOrUncommitPatches',
                 () => this.stgit?.commitOrUncommitPatches()),
