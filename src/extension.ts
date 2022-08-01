@@ -506,7 +506,9 @@ class Stgit {
         const branches = run('git', ['branch']).then<string[]>((s) => {
             return s.replace("*", "").split("\n").map(s => s.trim());
         });
-        const branch = await vscode.window.showQuickPick(branches);
+        const branch = await vscode.window.showQuickPick(branches, {
+            placeHolder: "Select branch to checkout"
+        });
         if (branch) {
             await run('git', ['switch', branch]);
             this.reload();
@@ -519,7 +521,9 @@ class Stgit {
             s => s.replace("*", "").trim()).filter(x => x);
     }
     async rebase() {
-        const base = await vscode.window.showQuickPick(this.allBranches());
+        const base = await vscode.window.showQuickPick(this.allBranches(), {
+            placeHolder: "Select upstream branch for rebase"
+        });
         if (base) {
             await run('stg', ['rebase', '--', base]);
             this.reload();
@@ -633,7 +637,9 @@ class Stgit {
     }
     async setHistorySize() {
         const numStr = await vscode.window.showQuickPick([
-            '0', '1', '5', '10', '15', '20', '25', '30', '35', '40']);
+            '0', '1', '5', '10', '15', '20', '25', '30', '35', '40'], {
+            placeHolder: "Specify Git history size",
+        });
         if (numStr) {
             const historySize = parseInt(numStr);
             this.fetchHistory(historySize);
