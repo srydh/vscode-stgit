@@ -70,7 +70,7 @@ class Patch {
     deltas: Delta[] = [];
     private hasDetails = false;
     protected sha = "0000";
-    detailsFetcher: Promise<void> | null = null;
+    private detailsFetcher: Promise<void> | null = null;
 
     lineNum = 0;
     lines: string[] = [];
@@ -82,13 +82,6 @@ class Patch {
         public empty: boolean,
     ) {}
 
-    static fromSeries(line: string): Patch {
-        const empty = line[0] === '0';
-        const kind = line[1] as PatchKind;
-        const label = line.slice(2).split("#")[0].trim();
-        const desc = (line.split("#")[1] ?? "").trim();
-        return new this(desc, label, kind, empty);
-    }
     updateFromOld(old: Patch) {
         this.expanded = old.expanded;
         this.marked = old.marked;
@@ -113,26 +106,38 @@ class Patch {
         const entries = diffOutput.split("\n").filter(s => s.includes("\t"));
         this.deltas = entries.map(s => new Delta(s));
     }
-    protected async doFetchDetails(): Promise<void> {
-        this.sha = await run('stg', ["id", "--", this.label]);
-        const tree = await run('git', ["diff-tree", "-r", this.sha]);
-        this.makeDeltas(tree);
-    }
+    protected async doFetchDetails(): Promise<void> { /* virtual */ }
+    setMarked(marked: boolean): void { /* ignore */ }
+
     fetchDetails(): Promise<void> {
         if (!this.detailsFetcher)
             this.detailsFetcher = this.doFetchDetails();
         return this.detailsFetcher;
     }
 
-    setMarked(marked: boolean) {
-        this.marked = marked;
-        notifyDirty();
-    }
-
     async toggleExpanded() {
         if (!this.hasDetails)
             await this.fetchDetails();
         this.expanded = !this.expanded;
+        notifyDirty();
+    }
+}
+
+class StGitPatch extends Patch {
+    static fromSeries(line: string): Patch {
+        const empty = line[0] === '0';
+        const kind = line[1] as PatchKind;
+        const label = line.slice(2).split("#")[0].trim();
+        const desc = (line.split("#")[1] ?? "").trim();
+        return new this(desc, label, kind, empty);
+    }
+    protected async doFetchDetails(): Promise<void> {
+        this.sha = await run('stg', ["id", "--", this.label]);
+        const tree = await run('git', ["diff-tree", "-r", this.sha]);
+        this.makeDeltas(tree);
+    }
+    setMarked(marked: boolean) {
+        this.marked = marked;
         notifyDirty();
     }
 }
@@ -147,7 +152,6 @@ class WorkTree extends Patch {
         const tree = await run('git', ["diff-files", "-0"], {trim: false});
         this.makeDeltas(tree);
     }
-    setMarked(marked: boolean): void { /* ignore */ }
 }
 
 class Index extends Patch {
@@ -159,7 +163,6 @@ class Index extends Patch {
         const tree = await run('git', ["diff-index", "--cached", "HEAD"]);
         this.makeDeltas(tree);
     }
-    setMarked(marked: boolean): void { /* ignore */ }
 }
 
 class History extends Patch {
@@ -184,7 +187,6 @@ class History extends Patch {
             return new History(sha, desc);
         });
     }
-    setMarked(marked: boolean): void { /* ignore */ }
 }
 
 function sleep(ms: number){
@@ -236,7 +238,7 @@ class Stgit {
         const work: Promise<void>[] = [];
         for (const line of s.split("\n")) {
             if (line) {
-                const p = Patch.fromSeries(line);
+                const p = StGitPatch.fromSeries(line);
                 const old = m.get(p.label);
                 if (old)
                     p.updateFromOld(old);
