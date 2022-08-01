@@ -317,11 +317,15 @@ class Stgit {
         await run('stg', ['repair']);
         this.reload();
     }
-    gotoPatch() {
+    async gotoPatch() {
         const p = this.curPatch;
-        if (p?.label) {
-            run('stg', ['goto', '--', p.label]).then(() => this.reload());
-        }
+        if (p?.label)
+            await run('stg', ['goto', '--', p.label]);
+        else if (p?.kind === 'H')
+            await run('stg', ['pop', '-a', ]);
+        else
+            return;
+        this.reload();
     }
     async pushOrPopPatches() {
         const applied = this.applied.filter(p => p.marked);
@@ -682,6 +686,8 @@ class Stgit {
         }
         pushVec(this.history);
         pushVec(this.applied);
+        if (!this.applied.length)
+            lines.push("> <no patch applied>");
         if (this.needRepair)
             lines.push("! *** Repair needed [C-u g] ***");
         pushVec([this.index]);
