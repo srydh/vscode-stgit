@@ -69,7 +69,7 @@ class Patch {
     marked = false;
     deltas: Delta[] = [];
     private hasDetails = false;
-    private sha = "0000";
+    protected sha = "0000";
     detailsFetcher: Promise<void> | null = null;
 
     lineNum = 0;
@@ -162,17 +162,44 @@ class Index extends Patch {
     setMarked(marked: boolean): void { /* ignore */ }
 }
 
+class History extends Patch {
+    constructor(sha: string, description: string) {
+        super(description, "", 'H', false);
+        this.sha = sha;
+    }
+    protected async doFetchDetails(): Promise<void> {
+        const tree = await run('git', ['diff-tree', this.sha]);
+        this.makeDeltas(tree);
+    }
+    static async fromRev(rev: string, count=5) {
+        const log = await run('git', [
+            'log', '--reverse', '--first-parent', `-n${count}`,
+            '--format=%H\t%s', rev]);
+        if (log === "")
+            return [];
+        return log.split("\n").map(s => {
+            const [sha, desc] = s.split("\t");
+            return new History(sha, desc);
+        });
+    }
+    setMarked(marked: boolean): void { /* ignore */ }
+}
+
 function sleep(ms: number){
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 class Stgit {
+    private history: History[] = [];
     private applied: Patch[] = [];
     private popped: Patch[] = [];
     private index: Patch = new Index();
     private workTree: Patch = new WorkTree();
     private header: string[] = ["StGit", ""];
     private needRepair = false;
+
+    // start of history
+    private baseSha: string | null = null;
 
     private commentThread: vscode.CommentThread | null = null;
 
@@ -191,12 +218,15 @@ class Stgit {
     }
 
     private get patches() {
-        return [...this.applied, this.index, this.workTree, ...this.popped];
+        return [...this.history, ...this.applied,
+            this.index, this.workTree, ...this.popped];
     }
 
     async reload() {
         const args = ['series', '-ae', '--description'];
         const s = await run('stg', args);
+
+        this.fetchHistory();
 
         const m = new Map(this.patches.map(p => [p.label, p]));
         const patches = [];
@@ -231,6 +261,14 @@ class Stgit {
         this.notifyDirty();
 
         this.checkForRepair();
+    }
+    async fetchHistory() {
+        const sha = await run('stg', ['id', '--', '{base}']);
+        if (sha !== this.baseSha) {
+            this.baseSha = sha;
+            this.history = await History.fromRev(this.baseSha);
+            this.notifyDirty();
+        }
     }
     async checkForRepair() {
         const top = await run ('stg', ['top']);
@@ -642,6 +680,7 @@ class Stgit {
                 lines.push(...p.lines);
             }
         }
+        pushVec(this.history);
         pushVec(this.applied);
         if (this.needRepair)
             lines.push("! *** Repair needed [C-u g] ***");
