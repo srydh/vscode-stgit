@@ -171,7 +171,7 @@ class History extends Patch {
         this.sha = sha;
     }
     protected async doFetchDetails(): Promise<void> {
-        const tree = await run('git', ['diff-tree', this.sha]);
+        const tree = await run('git', ['diff-tree', '-r', this.sha]);
         this.makeDeltas(tree);
     }
     static async fromRev(rev: string, limit: number) {
