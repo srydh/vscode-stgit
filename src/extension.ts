@@ -536,7 +536,7 @@ class Stgit {
     }
     private async allBranches() {
         const local = (await run('git', ['branch'])).split("\n");
-        const remote = (await run('git', ['branch -r'])).split("\n");
+        const remote = (await run('git', ['branch', '-r'])).split("\n");
         return [...local, ...remote].map(
             s => s.replace("*", "").trim()).filter(x => x);
     }
