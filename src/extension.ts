@@ -69,7 +69,7 @@ class Patch {
     marked = false;
     deltas: Delta[] = [];
     private hasDetails = false;
-    protected sha = "0000";
+    protected sha: string | null = null;
     private detailsFetcher: Promise<void> | null = null;
 
     lineNum = 0;
@@ -113,6 +113,11 @@ class Patch {
         if (!this.detailsFetcher)
             this.detailsFetcher = this.doFetchDetails();
         return this.detailsFetcher;
+    }
+
+    async getSha(): Promise<string | null> {
+        await this.fetchDetails();
+        return this.sha;
     }
 
     async toggleExpanded() {
@@ -166,6 +171,7 @@ class Index extends Patch {
 }
 
 class History extends Patch {
+    protected sha: string;
     constructor(sha: string, description: string) {
         super(description, "", 'H', false);
         this.sha = sha;
@@ -496,20 +502,38 @@ class Stgit {
     }
     async showDiff() {
         const delta = this.curChange;
-        if (delta) {
-            const s = `stgit-diff:///${delta.path}#${delta.srcSha}`;
-            const uri = vscode.Uri.parse(s);
-            const doc = await vscode.workspace.openTextDocument(uri);
-            if (doc) {
-                vscode.languages.setTextDocumentLanguage(doc, 'diff');
-                const opts: vscode.TextDocumentShowOptions = {
-                    viewColumn: this.alternateViewColumn,
-                    preview: true,
-                    preserveFocus: true,
-                };
-                vscode.window.showTextDocument(doc, opts);
-                vscode.commands.executeCommand('stgit.open');
+        const patch = this.curPatch;
+        const sha = await patch?.getSha();
+        let spec: string | null = null;
+        if (patch && sha) {
+            if (delta) {
+                spec = (`${delta.path}#`
+                    + `sha1=${sha}^,sha2=${sha},file=${delta.path}`);
+            } else {
+                spec = (`${sha.slice(0, 5)}#sha1=${sha}^,sha2=${sha}`);
             }
+        } else if (patch?.kind === 'I') {
+            if (delta)
+                spec = `${delta.path}#sha1=index,sha2=HEAD,file=${delta.path}`;
+            else
+                spec = `index#sha1=index,sha2=HEAD`;
+        } else if (patch?.kind === 'W') {
+            if (delta)
+                spec = `${delta.path}#file=${delta.path}`;
+            else
+                spec = `index#`;
+        }
+        if (spec) {
+            const uri = vscode.Uri.parse(`stgit-diff:///${spec}`);
+            const doc = await vscode.workspace.openTextDocument(uri);
+            vscode.languages.setTextDocumentLanguage(doc, 'diff');
+            const opts: vscode.TextDocumentShowOptions = {
+                viewColumn: this.alternateViewColumn,
+                preview: true,
+                preserveFocus: true,
+            };
+            vscode.window.showTextDocument(doc, opts);
+            vscode.commands.executeCommand('stgit.open');
         }
     }
     async help() {
@@ -683,9 +707,21 @@ class Stgit {
         return run('git', ['show', sha], {trim: false});
     }
     provideDiff(uri: vscode.Uri): Promise<string> {
-        const sha = uri.fragment;
-        const path = uri.path.slice(1);
-        return run('git', ['diff', sha, '--', path], {trim: false});
+        const args = uri.fragment.split(',').map(
+            s => s.split("=") as [string, string]);
+        const d = new Map(args);
+        const rawSha1 = d.get('sha1');
+        const sha2 = d.get('sha2');
+        const file = d.get('file');
+        const sha1 = rawSha1 === 'index' ? '--cached' : rawSha1;
+        if (sha1 && sha2 && file)
+            return run('git', ['diff', sha1, sha2, '--', file], {trim: false});
+        else if (sha1 && sha2)
+            return run('git', ['diff', sha1, sha2], {trim: false});
+        else if (file)
+            return run('git', ['diff', '--', file], {trim: false});
+        else
+            return run('git', ['diff'], {trim: false});
     }
     private moveCursorToNextPatch() {
         const list = this.patches;
