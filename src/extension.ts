@@ -218,7 +218,7 @@ class Stgit {
 
     constructor(
         public doc: vscode.TextDocument,
-        private notifyDirty: () => void,
+        private markUriDirty: (uri: vscode.Uri) => void,
         private commentController: vscode.CommentController,
     ) {
         this.reload();
@@ -226,7 +226,9 @@ class Stgit {
     dispose() {
         /* nothing */
     }
-
+    private notifyDirty() {
+        this.markUriDirty(this.doc.uri);
+    }
     private get patches() {
         return [...this.history, ...this.applied,
             this.index, this.workTree, ...this.popped];
@@ -507,6 +509,7 @@ class Stgit {
         const patch = this.curPatch;
         const sha = await patch?.getSha();
         let spec: string | null = null;
+        let invariant = false;
         if (patch && sha) {
             if (delta) {
                 spec = (`${delta.path}#`
@@ -514,6 +517,7 @@ class Stgit {
             } else {
                 spec = (`${sha.slice(0, 5)}#sha1=${sha}^,sha2=${sha}`);
             }
+            invariant = true;   // Diff contents never changes
         } else if (patch?.kind === 'I') {
             if (delta)
                 spec = `${delta.path}#sha1=index,sha2=HEAD,file=${delta.path}`;
@@ -527,6 +531,9 @@ class Stgit {
         }
         if (spec) {
             const uri = vscode.Uri.parse(`stgit-diff:///Diff ${spec}`);
+            // If the uri is already open, we must force a refresh
+            if (!invariant)
+                this.markUriDirty(uri);
             const doc = await vscode.workspace.openTextDocument(uri);
             vscode.languages.setTextDocumentLanguage(doc, 'diff');
             const opts: vscode.TextDocumentShowOptions = {
@@ -832,7 +839,7 @@ class StgitExtension {
         const provider: vscode.TextDocumentContentProvider = {
             onDidChange: this.changeEmitter.event,
             provideTextDocumentContent: (uri: vscode.Uri, token) => {
-                return this.stgit?.documentContents ?? "";
+                return this.stgit?.documentContents ?? "\nIndex\n";
             }
         };
         const blobProvider: vscode.TextDocumentContentProvider = {
@@ -841,13 +848,15 @@ class StgitExtension {
             }
         };
         const diffProvider: vscode.TextDocumentContentProvider = {
+            onDidChange: this.changeEmitter.event,
             provideTextDocumentContent: (uri, token) => {
                 return this.stgit?.provideDiff(uri) ?? "";
             }
         };
         const subscriptions = context.subscriptions;
         subscriptions.push(
-            workspace.registerTextDocumentContentProvider('stgit', provider),
+            workspace.registerTextDocumentContentProvider(
+                'stgit', provider),
             workspace.registerTextDocumentContentProvider(
                 'stgit-blob', blobProvider),
             workspace.registerTextDocumentContentProvider(
@@ -929,8 +938,9 @@ class StgitExtension {
             this.stgit.reload();
         } else {
             const doc = await workspace.openTextDocument(this.uri);
-            this.stgit = new Stgit(
-                doc, () => this.notifyDirty(), this.commentController);
+            this.stgit = new Stgit(doc,
+                uri => this.changeEmitter.fire(uri),
+                this.commentController);
             await vscode.window.showTextDocument(doc, {
                 viewColumn: this.stgit.mainViewColumn,
                 preview: false,
@@ -945,9 +955,6 @@ class StgitExtension {
         const opts = editor.options;
         opts.lineNumbers = vscode.TextEditorLineNumbersStyle.Off;
         opts.cursorStyle = vscode.TextEditorCursorStyle.Block;
-    }
-    notifyDirty() {
-        this.changeEmitter.fire(this.uri);
     }
     log(line: any): void {
         this.channel.appendLine(line);
