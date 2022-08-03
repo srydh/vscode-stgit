@@ -797,7 +797,7 @@ class Stgit {
 
 class StgitExtension {
     static instance: StgitExtension | null;
-    private stgit: Stgit | undefined;
+    private stgit: Stgit | null = null;
     private changeEmitter = new vscode.EventEmitter<Uri>();
     private channel = vscode.window.createOutputChannel('stgit');
     private commentController = vscode.comments.createCommentController(
@@ -877,7 +877,14 @@ class StgitExtension {
                     if (e.document.uri.scheme === 'stgit')
                         this.configureEditor(e);
                 }
-            }, context.subscriptions)
+            }, context.subscriptions),
+
+            workspace.onDidCloseTextDocument((doc) => {
+                if (doc === this.stgit?.doc) {
+                    this.stgit.dispose();
+                    this.stgit = null;
+                }
+            })
         );
         context.subscriptions.push(this);
         this.openStgit();
