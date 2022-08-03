@@ -2,12 +2,12 @@
 // This code is licensed under the BSD 2-Clause license.
 
 import * as vscode from 'vscode';
-import { workspace, window, Uri, commands } from 'vscode';
+import { workspace, window, commands } from 'vscode';
 import { spawn } from 'child_process';
 
 function run(command: string, args: string[],
         opts = {trim: true}): Promise<string> {
-    const cwd = vscode.workspace.workspaceFolders?.[0].uri.path ?? "/tmp/";
+    const cwd = workspace.workspaceFolders?.[0].uri.path ?? "/tmp/";
     const proc = spawn(command, args, {cwd: cwd});
     const data: string[] = [];
     proc.stdout!.on('data', (s) => { data.push(s); });
@@ -461,7 +461,7 @@ class Stgit {
         }
     }
     focusWindow() {
-        vscode.window.showTextDocument(this.doc, {
+        window.showTextDocument(this.doc, {
             preview: false,
             viewColumn: this.editor?.viewColumn,
         });
@@ -534,14 +534,14 @@ class Stgit {
             // If the uri is already open, we must force a refresh
             if (!invariant)
                 this.markUriDirty(uri);
-            const doc = await vscode.workspace.openTextDocument(uri);
+            const doc = await workspace.openTextDocument(uri);
             vscode.languages.setTextDocumentLanguage(doc, 'diff');
             const opts: vscode.TextDocumentShowOptions = {
                 viewColumn: this.alternateViewColumn,
                 preview: true,
                 preserveFocus: true,
             };
-            vscode.window.showTextDocument(doc, opts);
+            window.showTextDocument(doc, opts);
             vscode.commands.executeCommand('stgit.open');
         }
     }
@@ -559,7 +559,7 @@ class Stgit {
         const branches = run('git', ['branch']).then<string[]>((s) => {
             return s.replace("*", "").split("\n").map(s => s.trim());
         });
-        const branch = await vscode.window.showQuickPick(branches, {
+        const branch = await window.showQuickPick(branches, {
             placeHolder: "Select branch to checkout"
         });
         if (branch) {
@@ -574,7 +574,7 @@ class Stgit {
             s => s.replace("*", "").trim()).filter(x => x);
     }
     async rebase() {
-        const base = await vscode.window.showQuickPick(this.allBranches(), {
+        const base = await window.showQuickPick(this.allBranches(), {
             placeHolder: "Select upstream branch for rebase"
         });
         if (base) {
@@ -597,9 +597,9 @@ class Stgit {
         const delta = this.curChange;
         if (delta) {
             const uri = vscode.Uri.joinPath(this.repoUri, delta.path);
-            const doc = await vscode.workspace.openTextDocument(uri);
+            const doc = await workspace.openTextDocument(uri);
             if (doc)
-                vscode.window.showTextDocument(doc, {
+                window.showTextDocument(doc, {
                     viewColumn: this.alternateViewColumn,
                 });
         } else if (patch && patch.lineNum === this.curLine) {
@@ -692,7 +692,7 @@ class Stgit {
         this.reload();
     }
     async setHistorySize() {
-        const numStr = await vscode.window.showQuickPick([
+        const numStr = await window.showQuickPick([
             '0', '1', '5', '10', '15', '20', '25', '30', '35', '40'], {
             placeHolder: "Specify Git history size",
         });
@@ -768,11 +768,11 @@ class Stgit {
         }
     }
     get editor(): vscode.TextEditor | null {
-        const active = vscode.window.activeTextEditor;
+        const active = window.activeTextEditor;
         if (active?.document === this.doc) {
             return active;
         } else {
-            return vscode.window.visibleTextEditors.find(
+            return window.visibleTextEditors.find(
                 e => (e.document === this.doc)) ?? null;
         }
     }
@@ -803,7 +803,7 @@ class Stgit {
         return this.editor?.viewColumn ?? 3;
     }
     private get repoUri(): vscode.Uri {
-        const d = vscode.workspace.workspaceFolders?.[0]?.uri;
+        const d = workspace.workspaceFolders?.[0]?.uri;
         return d ? d : vscode.Uri.parse("unknown://repo/path");
     }
 
@@ -831,8 +831,8 @@ class Stgit {
 class StgitExtension {
     static instance: StgitExtension | null;
     private stgit: Stgit | null = null;
-    private changeEmitter = new vscode.EventEmitter<Uri>();
-    private channel = vscode.window.createOutputChannel('stgit');
+    private changeEmitter = new vscode.EventEmitter<vscode.Uri>();
+    private channel = window.createOutputChannel('stgit');
     private commentController = vscode.comments.createCommentController(
         'stgit.comments', "StGit");
 
@@ -942,7 +942,7 @@ class StgitExtension {
             this.stgit = new Stgit(doc,
                 uri => this.changeEmitter.fire(uri),
                 this.commentController);
-            await vscode.window.showTextDocument(doc, {
+            await window.showTextDocument(doc, {
                 viewColumn: this.stgit.mainViewColumn,
                 preview: false,
             });
