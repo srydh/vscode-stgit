@@ -889,7 +889,10 @@ class StgitExtension {
                     this.stgit.dispose();
                     this.stgit = null;
                 }
-            })
+            }),
+            workspace.onDidSaveTextDocument((doc) => {
+                this.stgit?.reloadWorkTree();
+            }),
         );
         context.subscriptions.push(this);
         this.openStgit();
