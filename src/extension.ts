@@ -232,15 +232,26 @@ class Stgit {
             this.index, this.workTree, ...this.popped];
     }
 
-    async reload() {
-        const args = ['series', '-ae', '--description'];
-        const s = await run('stg', args);
-
-        this.fetchHistory(this.historySize);
-
+    async reloadIndex() {
+        const index = new Index();
+        await index.updateFromOld(this.index);
+        await index.fetchDetails();
+        this.index = index;
+        this.notifyDirty();
+    }
+    async reloadWorkTree() {
+        const workTree = new WorkTree();
+        await workTree.updateFromOld(this.workTree);
+        await workTree.fetchDetails();
+        this.workTree = workTree;
+        this.notifyDirty();
+    }
+    async reloadPatches() {
         const m = new Map(this.patches.map(p => [p.label, p]));
         const patches = [];
-        const work: Promise<void>[] = [];
+        const work = [];
+
+        const s = await run('stg', ['series', '-ae', '--description']);
         for (const line of s.split("\n")) {
             if (line) {
                 const p = StGitPatch.fromSeries(line);
@@ -250,24 +261,18 @@ class Stgit {
                 patches.push(p);
             }
         }
-        // Reload index and workTree
-        const index = new Index();
-        const workTree = new WorkTree();
-        work.push(
-            index.updateFromOld(index),
-            workTree.updateFromOld(workTree),
-            index.fetchDetails(),
-            workTree.fetchDetails(),
-        );
         for (const w of work)
             await w;
 
-        this.index = index;
-        this.workTree = workTree;
         this.popped = patches.filter(p => p.kind === '-');
         this.applied = patches.filter(p => p.kind !== '-');
         this.notifyDirty();
-
+    }
+    async reload() {
+        this.reloadPatches();
+        this.fetchHistory(this.historySize);
+        this.reloadIndex();
+        this.reloadWorkTree();
         this.checkForRepair();
     }
     async fetchHistory(historySize: number) {
