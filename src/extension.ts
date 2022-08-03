@@ -713,6 +713,7 @@ class Stgit {
             return;
         }
         this.reloadPatches();
+        this.fetchHistory(this.historySize);
     }
     provideTextBlob(uri: vscode.Uri): Promise<string> {
         const sha = uri.fragment;
