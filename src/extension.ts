@@ -638,11 +638,10 @@ class Stgit {
             else
                 await run('git', ["reset", "HEAD"]);
         }
-        // FIXME: use faster reload primitive
-        this.reload();
+        this.reloadIndex();
+        this.reloadWorkTree();
     }
     async revertChanges() {
-        // TODO
         const patch = this.curPatch;
         const change = this.curChange;
         if (patch?.kind === 'I') {
@@ -662,7 +661,8 @@ class Stgit {
                 await run('git', ['restore', '--', ...files]);
             }
         }
-        this.reload();
+        this.reloadIndex();
+        this.reloadWorkTree();
     }
     async undo() {
         await run('stg', ['undo']);
@@ -705,7 +705,7 @@ class Stgit {
         } else {
             return;
         }
-        this.reload();
+        this.reloadPatches();
     }
     provideTextBlob(uri: vscode.Uri): Promise<string> {
         const sha = uri.fragment;
