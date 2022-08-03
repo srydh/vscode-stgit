@@ -24,8 +24,6 @@ function run(command: string, args: string[],
     });
 }
 
-type PatchKind = '+' | '-' | '>' | 'H' | 'I' | 'W';
-
 class Delta {
     readonly path: string;
     readonly srcSha: string;
@@ -65,7 +63,7 @@ class Delta {
 }
 
 class Patch {
-    expanded = false;
+    protected expanded = false;
     marked = false;
     deltas: Delta[] = [];
     private hasDetails = false;
@@ -76,22 +74,23 @@ class Patch {
     lines: string[] = [];
 
     constructor(
-        private description: string,
-        public label: string,
-        public kind: PatchKind,
-        public empty: boolean,
+        private readonly description: string,
+        public readonly label: string,
+        public readonly kind: '+' | '-' | 'H' | 'I' | 'W',
+        public readonly empty: boolean,
+        private readonly symbol: "+" | "-" | ">" | " " = " ",
     ) {}
 
-    updateFromOld(old: Patch) {
-        this.expanded = old.expanded;
+    async updateFromOld(old: Patch) {
         this.marked = old.marked;
+        if (this.expanded !== old.expanded)
+            await this.toggleExpanded();
     }
     updateLines(lineNum: number) {
         this.lineNum = lineNum;
         const m = this.marked ? '*' : ' ';
-        const k = "+->".includes(this.kind) ? this.kind : ' ';
         const empty = this.empty ? "(empty) " : "";
-        this.lines = [`${k}${m}${empty}${this.description}`];
+        this.lines = [`${this.symbol}${m}${empty}${this.description}`];
         if (this.expanded) {
             if (!this.hasDetails)
                 this.fetchDetails();
@@ -107,7 +106,7 @@ class Patch {
         this.deltas = entries.map(s => new Delta(s));
     }
     protected async doFetchDetails(): Promise<void> { /* virtual */ }
-    setMarked(marked: boolean): void { /* ignore */ }
+    setMarked(marked: boolean): boolean { return false; }
 
     fetchDetails(): Promise<void> {
         if (!this.detailsFetcher)
@@ -121,20 +120,19 @@ class Patch {
     }
 
     async toggleExpanded() {
-        if (!this.hasDetails)
-            await this.fetchDetails();
+        await this.fetchDetails();
         this.expanded = !this.expanded;
-        notifyDirty();
     }
 }
 
 class StGitPatch extends Patch {
     static fromSeries(line: string): Patch {
         const empty = line[0] === '0';
-        const kind = line[1] as PatchKind;
+        const kind = line[1] === '-' ? '-' : '+';
+        const symbol = line[1] as '+' | '-' | '>';
         const label = line.slice(2).split("#")[0].trim();
         const desc = (line.split("#")[1] ?? "").trim();
-        return new this(desc, label, kind, empty);
+        return new this(desc, label, kind, empty, symbol);
     }
     protected async doFetchDetails(): Promise<void> {
         this.sha = await run('stg', ["id", "--", this.label]);
@@ -142,8 +140,9 @@ class StGitPatch extends Patch {
         this.makeDeltas(tree);
     }
     setMarked(marked: boolean) {
+        const changed = this.marked !== marked;
         this.marked = marked;
-        notifyDirty();
+        return changed;
     }
 }
 
@@ -247,18 +246,16 @@ class Stgit {
                 const p = StGitPatch.fromSeries(line);
                 const old = m.get(p.label);
                 if (old)
-                    p.updateFromOld(old);
-                if (p.expanded)
-                    work.push(p.fetchDetails());
+                    work.push(p.updateFromOld(old));
                 patches.push(p);
             }
         }
         // Reload index and workTree
         const index = new Index();
         const workTree = new WorkTree();
-        index.updateFromOld(index);
-        workTree.updateFromOld(workTree);
         work.push(
+            index.updateFromOld(index),
+            workTree.updateFromOld(workTree),
             index.fetchDetails(),
             workTree.fetchDetails(),
         );
@@ -574,11 +571,13 @@ class Stgit {
         }
     }
     markPatch() {
-        this.curPatch?.setMarked(true);
+        if (this.curPatch?.setMarked(true))
+            this.notifyDirty();
         this.moveCursorToNextPatch();
     }
     unmarkPatch() {
-        this.curPatch?.setMarked(false);
+        if (this.curPatch?.setMarked(false))
+            this.notifyDirty();
         this.moveCursorToNextPatch();
     }
     async toggleExpand() {
@@ -592,7 +591,8 @@ class Stgit {
                     viewColumn: this.alternateViewColumn,
                 });
         } else if (patch && patch.lineNum === this.curLine) {
-            patch?.toggleExpanded();
+            await patch.toggleExpanded();
+            this.notifyDirty();
         } else {
             const line = this.editor?.document.lineAt(this.curLine);
             if (line?.text.startsWith('!'))
@@ -694,7 +694,7 @@ class Stgit {
         if (curPatch?.kind === 'H') {
             const n = this.history.length - this.history.indexOf(curPatch);
             await run('stg', ['uncommit', `-n${n}`]);
-        } else if (curPatch?.kind === '+' || curPatch?.kind === '>') {
+        } else if (curPatch?.kind === '+') {
             const n = this.applied.indexOf(curPatch) + 1;
             await run('stg', ['commit', `-n${n}`]);
         } else {
@@ -920,9 +920,6 @@ class StgitExtension {
     }
 }
 
-function notifyDirty() {
-    StgitExtension.instance?.notifyDirty();
-}
 function log(obj: any) {
     StgitExtension.instance?.log(obj);
 }
