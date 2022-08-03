@@ -526,7 +526,7 @@ class Stgit {
                 spec = `index#`;
         }
         if (spec) {
-            const uri = vscode.Uri.parse(`stgit-diff:///${spec}`);
+            const uri = vscode.Uri.parse(`stgit-diff:///Diff ${spec}`);
             const doc = await vscode.workspace.openTextDocument(uri);
             vscode.languages.setTextDocumentLanguage(doc, 'diff');
             const opts: vscode.TextDocumentShowOptions = {
@@ -739,6 +739,26 @@ class Stgit {
             this.editor.selection = new vscode.Selection(pos, pos);
         }
     }
+    async moveCursorToIndexAtOpen() {
+        const editor = this.editor;
+        if (editor) {
+            let done = false;
+            const watcher = workspace.onDidChangeTextDocument((e) => {
+                if (e.document !== this.doc || done)
+                    return;
+                const line = this.index.lineNum;
+                if (line !== 0) {
+                    const p = new vscode.Position(line, 0);
+                    editor.selection = new vscode.Selection(p, p);
+                    editor.revealRange(new vscode.Range(p, p));
+                    done = true;
+                    return;
+                }
+            });
+            await sleep(4000);
+            watcher.dispose();
+        }
+    }
     get editor(): vscode.TextEditor | null {
         const active = vscode.window.activeTextEditor;
         if (active?.document === this.doc) {
@@ -903,20 +923,19 @@ class StgitExtension {
         this.commentController.dispose();
         this.changeEmitter.dispose();
     }
-    private openStgit() {
+    private async openStgit() {
         if (this.stgit) {
             this.stgit.focusWindow();
             this.stgit.reload();
         } else {
-            const theDoc = vscode.workspace.openTextDocument(this.uri);
-            theDoc.then((doc) => {
-                this.stgit = new Stgit(
-                    doc, () => this.notifyDirty(), this.commentController);
-                vscode.window.showTextDocument(doc, {
-                    viewColumn: this.stgit.mainViewColumn,
-                    preview: false,
-                });
+            const doc = await workspace.openTextDocument(this.uri);
+            this.stgit = new Stgit(
+                doc, () => this.notifyDirty(), this.commentController);
+            await vscode.window.showTextDocument(doc, {
+                viewColumn: this.stgit.mainViewColumn,
+                preview: false,
             });
+            this.stgit.moveCursorToIndexAtOpen();
         }
     }
     private get uri() {
