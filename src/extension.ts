@@ -5,23 +5,33 @@ import * as vscode from 'vscode';
 import { workspace, window, commands } from 'vscode';
 import { spawn } from 'child_process';
 
-function run(command: string, args: string[],
-        opts = {trim: true}): Promise<string> {
+async function runCommand(command: string, args: string[],
+        opts = { trim: true }) {
     const cwd = workspace.workspaceFolders?.[0].uri.path ?? "/tmp/";
+
     const proc = spawn(command, args, {cwd: cwd});
+
     const data: string[] = [];
+    const errorData: string[] = [];
     proc.stdout!.on('data', (s) => { data.push(s); });
-    proc.stderr!.on('data', () => { /* nothing */ });
-    return new Promise<string>((resolve, _) => {
-        proc.on('close', (code) => {
-            if (code === 0) {
-                const s = data.join('');
-                resolve(opts.trim ? s.trimEnd() : s);
-            } else {
-                resolve('');
-            }
-        });
+    proc.stderr!.on('data', (s) => { errorData.push(s); });
+
+    let exitCode = -1;
+    await new Promise<void>((resolve, _) => {
+        proc.on('close', (code) => { exitCode = code ?? 1; resolve(); });
+        proc.on('error', (err) => { exitCode = -1 ; resolve(); });
     });
+    if (exitCode !== 0)
+        log(['[failed]', command, ...args].join(' '));
+    const stdout = data.join('');
+    return {
+        stdout: opts.trim ? stdout.trimEnd() : stdout,
+        stderr: errorData.join('').trimEnd(),
+        ecode: exitCode,
+    };
+}
+async function run(command: string, args: string[], opts = { trim: true }) {
+    return (await runCommand(command, args, opts)).stdout;
 }
 
 class Delta {
@@ -206,6 +216,9 @@ class Stgit {
     private workTree: Patch = new WorkTree();
     private header: string[] = ["StGit", ""];
     private needRepair = false;
+    private stgMissing = false;
+    private branchInitialized = true;
+    private warnedAboutMissingStgBinary = false;
     private historySize = 5;
 
     // start of history
@@ -253,19 +266,27 @@ class Stgit {
         const patches = [];
         const work = [];
 
-        const s = await run('stg', ['series', '-ae', '--description']);
-        for (const line of s.split("\n")) {
-            if (line) {
-                const p = StGitPatch.fromSeries(line);
-                const old = m.get(p.label);
-                if (old)
-                    work.push(p.updateFromOld(old));
-                patches.push(p);
-            }
-        }
-        for (const w of work)
-            await w;
+        const result = await runCommand(
+            'stg', ['series', '-ae', '--description']);
 
+        this.branchInitialized = result.ecode === 0;
+        this.stgMissing = result.ecode < 0;
+
+        if (this.stgMissing) {
+            this.warnAboutMissingStGit();
+        } else if (this.branchInitialized) {
+            for (const line of result.stdout.split("\n")) {
+                if (line) {
+                    const p = StGitPatch.fromSeries(line);
+                    const old = m.get(p.label);
+                    if (old)
+                        work.push(p.updateFromOld(old));
+                    patches.push(p);
+                }
+            }
+            for (const w of work)
+                await w;
+        }
         this.popped = patches.filter(p => p.kind === '-');
         this.applied = patches.filter(p => p.kind !== '-');
         this.notifyDirty();
@@ -278,7 +299,9 @@ class Stgit {
         this.checkForRepair();
     }
     async fetchHistory(historySize: number) {
-        const sha = await run('stg', ['id', '--', '{base}']);
+        let sha = await run('stg', ['id', '--', '{base}']);
+        if (sha === '')
+            sha = await run('git', ['rev-parse', 'HEAD']);
         if (sha !== this.baseSha || this.historySize !== historySize) {
             this.baseSha = sha;
             this.historySize = historySize;
@@ -294,10 +317,16 @@ class Stgit {
         const gitHeadPromise = run('git', ['rev-parse', 'HEAD']);
         const stgHead = await stgHeadPromise;
         const gitHead = await gitHeadPromise;
-        const needRepair = stgHead !== gitHead;
-        if (needRepair !== this.needRepair) {
+        const needRepair = (stgHead !== gitHead) && stgHead !== '';
+        if (this.needRepair !== this.needRepair) {
             this.needRepair = needRepair;
             this.notifyDirty();
+        }
+    }
+    warnAboutMissingStGit() {
+        if (!this.warnedAboutMissingStgBinary) {
+            this.warnedAboutMissingStgBinary = true;
+            window.showErrorMessage('StGit binary (stg) not found');
         }
     }
     async refresh(extraArgs: string[] = []) {
@@ -332,6 +361,10 @@ class Stgit {
     }
     async repair() {
         await run('stg', ['repair']);
+        this.reload();
+    }
+    async initializeBranch() {
+        await run('stg', ['init']);
         this.reload();
     }
     async gotoPatch() {
@@ -607,8 +640,12 @@ class Stgit {
             this.notifyDirty();
         } else {
             const line = this.editor?.document.lineAt(this.curLine);
-            if (line?.text.startsWith('!'))
-                this.repair();
+            if (line?.text.startsWith('!')) {
+                if (this.needRepair)
+                    this.repair();
+                else if (!this.branchInitialized)
+                    this.initializeBranch();
+            }
         }
     }
     async resolveConflict() {
@@ -819,7 +856,11 @@ class Stgit {
         pushVec(this.applied);
         if (!this.applied.length)
             lines.push("> <no patch applied>");
-        if (this.needRepair)
+        if (this.stgMissing)
+            lines.push("! *** StGit not installed ('stg' binary missing) ***");
+        else if (!this.branchInitialized)
+            lines.push("! *** Setup branch for StGit ('stg init') ***");
+        else if (this.needRepair)
             lines.push("! *** Repair needed [C-u g] ***");
         pushVec([this.index]);
         pushVec([this.workTree]);
