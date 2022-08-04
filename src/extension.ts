@@ -499,10 +499,22 @@ class Stgit {
             viewColumn: this.editor?.viewColumn,
         });
     }
-    cancel() {
+    async closeAllDiffEditors() {
+        const editors = window.visibleTextEditors.filter(
+            e => e.document.uri.scheme === 'stgit-diff');
+        for (const e of editors) {
+            // workaround for missing 'closeEditor' API:
+            const opts: vscode.TextDocumentShowOptions = {
+                viewColumn: e.viewColumn, preview: true, preserveFocus: false};
+            await vscode.window.showTextDocument(e.document.uri, opts);
+            commands.executeCommand('workbench.action.closeActiveEditor');
+        }
+    }
+    async cancel() {
         this.commentThread?.dispose();
         this.commentThread = null;
         this.editPatch = null;
+        await this.closeAllDiffEditors();
         this.focusWindow();
     }
     async squashPatches() {
