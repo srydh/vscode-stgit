@@ -513,9 +513,13 @@ class Stgit {
         }
     }
     async deletePatches() {
+        const patch = this.curPatch;
         const patches = this.patches.filter(p => p.marked).map(p => p.label);
         if (patches.length) {
             await run('stg', ['delete', ...patches]);
+            this.reload();
+        } else if (patch?.kind === '-' || patch?.kind === '+') {
+            await run('stg', ['delete', patch.label]);
             this.reload();
         }
     }
