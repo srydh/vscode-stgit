@@ -2,14 +2,21 @@
 // This code is licensed under the BSD 2-Clause license.
 
 import * as vscode from 'vscode';
+import * as os from 'os';
+import * as fs from 'fs';
+import * as path from 'path';
 import { workspace, window, commands } from 'vscode';
 import { spawn } from 'child_process';
 
-async function runCommand(command: string, args: string[],
-        opts = { trim: true }) {
-    const cwd = workspace.workspaceFolders?.[0].uri.path ?? "/tmp/";
 
-    const proc = spawn(command, args, {cwd: cwd});
+interface RunOpts {
+    trim?: boolean,
+    env?: {[key: string]: string},
+}
+
+async function runCommand(command: string, args: string[], opts?: RunOpts) {
+    const cwd = workspace.workspaceFolders?.[0].uri.path ?? "/tmp/";
+    const proc = spawn(command, args, {cwd: cwd, env: opts?.env});
 
     const data: string[] = [];
     const errorData: string[] = [];
@@ -25,13 +32,39 @@ async function runCommand(command: string, args: string[],
         log(['[failed]', command, ...args].join(' '));
     const stdout = data.join('');
     return {
-        stdout: opts.trim ? stdout.trimEnd() : stdout,
+        stdout: opts?.trim !== false ? stdout.trimEnd() : stdout,
         stderr: errorData.join('').trimEnd(),
         ecode: exitCode,
     };
 }
-async function run(command: string, args: string[], opts = { trim: true }) {
+async function run(command: string, args: string[], opts?: RunOpts) {
     return (await runCommand(command, args, opts)).stdout;
+}
+
+async function uncommitFiles(files?: string[]) {
+    const index = await run('git', ['write-tree']);
+    if (index === '')
+        return;
+    await run('git', ['reset', '--mixed', '-q', 'HEAD']);
+    if (files)
+        await run('git', ['reset', '-q', 'HEAD^', '--', ...files]);
+    else
+        await run('git', ['read-tree', 'HEAD^']);
+    // Workaround a problem where stgit refuses to refresh from the index if
+    // a file is deleted in the index but present in the work tree.
+    const gitDir = await run('git', ['rev-parse', '--absolute-git-dir']);
+    const tempDir = await new Promise<string>((resolve) => {
+        const prefix = path.join(os.tmpdir(), "stgit-tmp");
+        fs.mkdtemp(prefix, {}, (err, dirname) => { resolve(dirname); });
+    });
+    const env = {
+        ...process.env,
+        GIT_WORK_TREE: tempDir,
+        GIT_DIR: gitDir,
+    };
+    const cmd = await runCommand('stg', ['refresh', '-i'], {env});
+    fs.rmdir(tempDir, (err) => {/* nothing */});
+    await run('git', ['read-tree', index]);
 }
 
 class Delta {
@@ -692,14 +725,22 @@ class Stgit {
             } else {
                 await run('git', ['add', '-u']);
             }
+            this.reloadIndex();
+            this.reloadWorkTree();
         } else if (patch?.kind == 'I') {
             if (change)
                 await run('git', ['restore', '-S', '--', change.path]);
             else
                 await run('git', ["reset", "HEAD"]);
+            this.reloadIndex();
+            this.reloadWorkTree();
+        } else if (patch && patch === this.applied.at(-1)) {
+            if (change)
+                await uncommitFiles([change.path]);
+            else
+                await uncommitFiles();
+            this.reload();
         }
-        this.reloadIndex();
-        this.reloadWorkTree();
     }
     async revertChanges() {
         const patch = this.curPatch;
@@ -1014,13 +1055,14 @@ class StgitExtension {
         opts.lineNumbers = vscode.TextEditorLineNumbersStyle.Off;
         opts.cursorStyle = vscode.TextEditorCursorStyle.Block;
     }
-    log(line: any): void {
+    log(line: string): void {
         this.channel.appendLine(line);
     }
 }
 
-function log(obj: any) {
-    StgitExtension.instance?.log(obj);
+function log(obj: string, ...args: string[]) {
+    const s = [obj, ...args].join(' ');
+    StgitExtension.instance?.log(s);
 }
 function info(msg: string) {
     window.showInformationMessage(msg);
