@@ -7,6 +7,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { workspace, window, commands } from 'vscode';
 import { spawn } from 'child_process';
+import { registerDiffMode } from './diff-mode';
 import { refreshDiff, registerDiffProvider } from './diff-provider';
 
 interface RunOpts {
@@ -1047,6 +1048,7 @@ export function info(msg: string) {
 export function activate(context: vscode.ExtensionContext) {
     StgitExtension.instance = new StgitExtension(context);
     registerDiffProvider(context);
+    registerDiffMode(context);
 }
 export function deactivate() {
     // Nothing

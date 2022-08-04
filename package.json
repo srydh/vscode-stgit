@@ -180,6 +180,34 @@
             "command": "stgit.refreshSpecific",
             "category": "StGit",
             "title": "Append Changes to Specified Patch"
+        }, {
+            "command": "sdiff.applyHunk",
+            "category": "SDiff",
+            "title": "Apply Diff"
+        }, {
+            "command": "sdiff.revertHunk",
+            "category": "SDiff",
+            "title": "Revert Diff"
+        }, {
+            "command": "sdiff.splitHunk",
+            "category": "SDiff",
+            "title": "Split Diff"
+        }, {
+            "command": "sdiff.help",
+            "category": "SDiff",
+            "title": "Help"
+        }, {
+            "command": "sdiff.gotoPreviousHunk",
+            "category": "SDiff",
+            "title": "Goto Previous Hunk"
+        }, {
+            "command": "sdiff.gotoNextHunk",
+            "category": "SDiff",
+            "title": "Goto Next Hunk"
+        }, {
+            "command": "sdiff.openFile",
+            "category": "SDiff",
+            "title": "Open File"
         }],
         "keybindings": [{
             "key": "r",
@@ -316,6 +344,34 @@
             "key": "escape",
             "command": "stgit.cancel",
             "when": "resourceScheme == stgit"
+        }, {
+            "key": "h",
+            "command": "sdiff.help",
+            "when": "resourceScheme == stgit-diff"
+        }, {
+            "key": "p",
+            "command": "sdiff.gotoPreviousHunk",
+            "when": "resourceScheme == stgit-diff"
+        }, {
+            "key": "n",
+            "command": "sdiff.gotoNextHunk",
+            "when": "resourceScheme == stgit-diff"
+        }, {
+            "key": "ctrl-c ctrl-a",
+            "command": "sdiff.applyHunk",
+            "when": "resourceScheme == stgit-diff"
+        }, {
+            "key": "ctrl-c ctrl-u",
+            "command": "sdiff.revertHunk",
+            "when": "resourceScheme == stgit-diff"
+        }, {
+            "key": "enter",
+            "command": "sdiff.openFile",
+            "when": "resourceScheme == stgit-diff"
+        }, {
+            "key": "ctrl-c ctrl-s",
+            "command": "sdiff.splitHunk",
+            "when": "resourceScheme == stgit-diff"
         }]
     },
     "scripts": {
