@@ -25,7 +25,7 @@
 		},
 		"outer": {
 			"patterns": [{
-				"begin": "^StGit",
+				"begin": "^Branch",
 				"while": "(?=^(  |$))",
 				"patterns": [{ "include": "#history" }]
 			}, {

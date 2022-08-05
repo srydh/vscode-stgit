@@ -247,12 +247,12 @@ class Stgit {
     private popped: Patch[] = [];
     private index: Patch = new Index();
     private workTree: Patch = new WorkTree();
-    private header: string[] = ["StGit", ""];
     private needRepair = false;
     private stgMissing = false;
     private branchInitialized = true;
     private warnedAboutMissingStgBinary = false;
     private historySize = 5;
+    private branchName: string | null = null;
 
     // start of history
     private baseSha: string | null = null;
@@ -325,11 +325,19 @@ class Stgit {
         this.notifyDirty();
     }
     async reload() {
+        this.fetchBranchName();
         this.reloadPatches();
         this.fetchHistory(this.historySize);
         this.reloadIndex();
         this.reloadWorkTree();
         this.checkForRepair();
+    }
+    async fetchBranchName() {
+        const branch = await run('git', ['symbolic-ref', '--short', 'HEAD']);
+        if (branch != this.branchName) {
+            this.branchName = branch === "" ? null : branch;
+            this.notifyDirty();
+        }
     }
     async fetchHistory(historySize: number) {
         let sha = await run('stg', ['id', '--', '{base}']);
@@ -902,7 +910,8 @@ class Stgit {
     }
 
     get documentContents(): string {
-        const lines = [...this.header];
+        const b = this.branchName ?? this.baseSha?.slice(0, 16) ?? "<unknown>";
+        const lines = [`Branch: ${b}`, ""];
         function pushVec(patches: Patch[]) {
             for (const p of patches) {
                 p.updateLines(lines.length);
