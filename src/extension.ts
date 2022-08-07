@@ -1036,11 +1036,11 @@ class StgitExtension {
     }
 }
 
-function log(obj: string, ...args: {toString: () => string}[]) {
+export function log(obj: string, ...args: {toString: () => string}[]) {
     const s = [obj, ...args.map(s => s.toString())].join(' ');
     StgitExtension.instance?.log(s);
 }
-function info(msg: string) {
+export function info(msg: string) {
     window.showInformationMessage(msg);
 }
 
