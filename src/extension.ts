@@ -1001,7 +1001,6 @@ class StgitExtension {
                 this.stgit?.reloadWorkTree();
             }),
         );
-        this.openStgit();
     }
     dispose() {
         this.stgit?.dispose();
