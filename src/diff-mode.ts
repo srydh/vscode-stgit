@@ -199,13 +199,20 @@ class DiffMode {
         this.gotoHunk(1);
     }
 
+    private selectHunk(hunk: Hunk) {
+        const editor = window.activeTextEditor;
+        if (editor)
+            editor.selection = new vscode.Selection(hunk.line, 0, hunk.line, 0);
+    }
+
     private async doApplyHunk(opts: {reverse: boolean}) {
         const hunk = this.hunk;
         if (!hunk)
             return;
+        this.selectHunk(hunk);
         const [fromText, toText] = opts.reverse ?
             [hunk.toText, hunk.fromText] : [hunk.fromText, hunk.toText];
-        const doc = await this.getSourceDoc();
+        const doc = await this.getSourceDoc(hunk);
         if (doc) {
             const matchLine = fromText.findInDoc(doc);
             if (matchLine < 0) {
@@ -242,10 +249,8 @@ class DiffMode {
     }
     async openFile() {
         const hunk = this.hunk;
-        const header = this.header;
-        if (header) {
-            const uri = vscode.Uri.joinPath(this.repoUri, header.toPath);
-            const doc = await workspace.openTextDocument(uri);
+        const doc = await this.getSourceDoc(hunk);
+        if (doc) {
             const match = hunk?.locate(doc);
             const editor = window.activeTextEditor;
             const curLine = editor?.selection.start.line ?? 0;
@@ -272,8 +277,8 @@ class DiffMode {
         commands.executeCommand(
             "workbench.action.quickOpen", ">SDiff: ");
     }
-    async getSourceDoc(): Promise<vscode.TextDocument | null> {
-        const header = this.header;
+    async getSourceDoc(hunk: Hunk | null): Promise<vscode.TextDocument | null> {
+        const header = this.getHeader(hunk);
         if (!header)
             return null;
         const uri = vscode.Uri.joinPath(this.repoUri, header.toPath);
@@ -285,7 +290,12 @@ class DiffMode {
                 const hunk = Hunk.fromLine(doc, i);
                 if (hunk && line < i + hunk.numHunkLines)
                     return hunk;
-                return null;
+                break;
+            }
+        }
+        for (let i = line + 1; i < doc.lineCount; i++) {
+            if (doc.lineAt(i).text.startsWith("@@")) {
+                return Hunk.fromLine(doc, i);
             }
         }
         return null;
@@ -298,10 +308,10 @@ class DiffMode {
         }
         return null;
     }
-    private get header(): DiffHeader | null {
+    private getHeader(hunk: Hunk | null): DiffHeader | null {
         const editor = window.activeTextEditor;
         if (editor) {
-            const line = editor.selection.start.line;
+            const line = hunk ? hunk.line : editor.selection.start.line;
             return DiffHeader.fromLine(editor.document, line);
         }
         return null;
