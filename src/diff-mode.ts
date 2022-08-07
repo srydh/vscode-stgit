@@ -142,15 +142,18 @@ class DiffMode {
             cmd('splitHunk', (e) => this.splitHunk(e)),
             cmd('openFile', () => this.openFile()),
             cmd('help', () => this.help()),
-            cmd('gotoPreviousHunk', (e) => this.gotoPreviousHunk(e)),
-            cmd('gotoNextHunk', (e) => this.gotoNextHunk(e)),
+            cmd('gotoPreviousHunk', () => this.gotoPreviousHunk()),
+            cmd('gotoNextHunk', () => this.gotoNextHunk()),
         );
         subscriptions.push(this);
     }
     dispose() {
         DiffMode.instance = null;
     }
-    private gotoHunk(editor: vscode.TextEditor, lineIncrement: number) {
+    private gotoHunk(lineIncrement: number) {
+        const editor = window.activeTextEditor;
+        if (!editor)
+            return;
         let line = editor.selection.start.line + lineIncrement;
         const lineCount = editor.document.lineCount;
         for (; line >= 0 && line < lineCount; line += lineIncrement) {
@@ -164,11 +167,11 @@ class DiffMode {
             }
         }
     }
-    gotoPreviousHunk(editor: vscode.TextEditor) {
-        this.gotoHunk(editor, -1);
+    gotoPreviousHunk() {
+        this.gotoHunk(-1);
     }
-    gotoNextHunk(editor: vscode.TextEditor) {
-        this.gotoHunk(editor, 1);
+    gotoNextHunk() {
+        this.gotoHunk(1);
     }
 
     private async doApplyHunk(opts: {reverse: boolean}) {
