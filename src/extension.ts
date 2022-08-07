@@ -195,7 +195,7 @@ class WorkTree extends Patch {
         this.expanded = true;
     }
     protected async doFetchDetails(): Promise<void> {
-        await run('git', ["update-index", "--refresh"]);
+        await run('git', ["update-index", "-q", "--refresh"]);
         const tree = await run('git', ["diff-files", "-0"], {trim: false});
         this.makeDeltas(tree);
     }
