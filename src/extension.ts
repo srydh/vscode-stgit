@@ -113,12 +113,13 @@ class Patch {
     private hasDetails = false;
     protected sha: string | null = null;
     private detailsFetcher: Promise<void> | null = null;
+    private commitMessage: string | null = null;
 
     lineNum = 0;
     lines: string[] = [];
 
     constructor(
-        private readonly description: string,
+        public readonly description: string,
         public readonly label: string,
         public readonly kind: '+' | '-' | 'H' | 'I' | 'W',
         public readonly empty: boolean,
@@ -161,6 +162,17 @@ class Patch {
     async getSha(): Promise<string | null> {
         await this.fetchDetails();
         return this.sha;
+    }
+
+    async getCommitMessage(): Promise<string | null> {
+        if (!this.commitMessage) {
+            const sha = await this.getSha();
+            if (sha) {
+                this.commitMessage = await run(
+                    'git', ['show', '--format=%B', sha]);
+            }
+        }
+        return this.commitMessage;
     }
 
     async toggleExpanded() {
@@ -559,11 +571,25 @@ class Stgit {
         this.focusWindow();
     }
     async squashPatches() {
-        const patches = this.patches.filter(p => p.marked).map(p => p.label);
-        if (patches.length) {
-            await run('stg', ['squash', '-m', '[SQUASHED] patch', ...patches]);
-            this.reload();
-        }
+        const patches = this.patches.filter(p => p.marked);
+        if (patches.length <= 1)
+            return;
+        const labels = patches.map(p => p.label);
+        const descriptions = patches.map(
+            (p, i) => `${i + 1} - ${p.description}`);
+        const desc = await window.showQuickPick(descriptions, {
+            placeHolder: "Select commit comment:"
+        });
+        if (!desc)
+            return;
+        const patch = patches[descriptions.findIndex(x => x === desc)];
+        const msg = await patch.getCommitMessage() ?? desc;
+
+        const result = await runCommand(
+            'stg', ['squash', '-m', msg, ...labels]);
+        if (!result.ecode)
+            patches.forEach(p => p.setMarked(false));
+        this.reload();
     }
     async deletePatches() {
         const patch = this.curPatch;
