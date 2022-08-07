@@ -601,26 +601,25 @@ class Stgit {
         let spec: string | null = null;
         let invariant = false;
         if (patch && sha) {
-            if (delta) {
-                spec = (`${delta.path}#`
-                    + `sha1=${sha}^,sha2=${sha},file=${delta.path}`);
-            } else {
-                spec = (`${sha.slice(0, 5)}#sha1=${sha}^,sha2=${sha}`);
-            }
+            const s = `${sha.slice(0, 5)}`;
+            if (delta)
+                spec = `diff-${s}-${delta.path}#sha=${sha},file=${delta.path}`;
+            else
+                spec = `diff-${s}#sha=${sha}`;
             invariant = true;   // Diff contents never changes
         } else if (patch?.kind === 'I') {
             if (delta)
-                spec = `${delta.path}#sha1=index,sha2=HEAD,file=${delta.path}`;
+                spec = `diff-index-${delta.path}#index,file=${delta.path}`;
             else
-                spec = `index#sha1=index,sha2=HEAD`;
+                spec = `diff-index#index`;
         } else if (patch?.kind === 'W') {
             if (delta)
-                spec = `${delta.path}#file=${delta.path}`;
+                spec = `diff-${delta.path}#file=${delta.path}`;
             else
-                spec = `index#`;
+                spec = `diff-work-tree`;
         }
         if (spec) {
-            const uri = vscode.Uri.parse(`stgit-diff:///Diff ${spec}`);
+            const uri = vscode.Uri.parse(`stgit-diff:///${spec}`);
             // If the uri is already open, we must force a refresh
             if (!invariant)
                 this.markUriDirty(uri);
@@ -828,22 +827,28 @@ class Stgit {
         const sha = uri.fragment;
         return run('git', ['show', sha], {trim: false});
     }
-    provideDiff(uri: vscode.Uri): Promise<string> {
+    async provideDiff(uri: vscode.Uri): Promise<string> {
         const args = uri.fragment.split(',').map(
-            s => s.split("=") as [string, string]);
+            s => (s + "=").split("=", 2) as [string, string]);
         const d = new Map(args);
-        const rawSha1 = d.get('sha1');
-        const sha2 = d.get('sha2');
+        const diffArgs: string[] = [];
+        const index = d.get('index');
+        const sha = d.get('sha');
         const file = d.get('file');
-        const sha1 = rawSha1 === 'index' ? '--cached' : rawSha1;
-        if (sha1 && sha2 && file)
-            return run('git', ['diff', sha1, sha2, '--', file], {trim: false});
-        else if (sha1 && sha2)
-            return run('git', ['diff', sha1, sha2], {trim: false});
-        else if (file)
-            return run('git', ['diff', '--', file], {trim: false});
-        else
-            return run('git', ['diff'], {trim: false});
+        const noTrim = {trim: false};
+        let header: Promise<string> | null = null;
+        if (index)
+            diffArgs.push('--index');
+        else if (sha)
+            diffArgs.push(`${sha}^`, sha);
+        if (sha && !file)
+            header = run('git', ['show', '--stat', sha], noTrim);
+        if (file)
+            diffArgs.push('--', file);
+        const diff = run('git', ['diff', ...diffArgs], noTrim);
+        if (header)
+            return [await header, await diff].join("\n");
+        return diff;
     }
     private moveCursorToNextPatch() {
         const list = this.patches;
