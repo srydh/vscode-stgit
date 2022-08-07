@@ -7,7 +7,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { workspace, window, commands } from 'vscode';
 import { spawn } from 'child_process';
-
+import { refreshDiff, registerDiffProvider } from './diff-provider';
 
 interface RunOpts {
     trim?: boolean,
@@ -37,7 +37,7 @@ async function runCommand(command: string, args: string[], opts?: RunOpts) {
         ecode: exitCode,
     };
 }
-async function run(command: string, args: string[], opts?: RunOpts) {
+export async function run(command: string, args: string[], opts?: RunOpts) {
     return (await runCommand(command, args, opts)).stdout;
 }
 
@@ -264,16 +264,13 @@ class Stgit {
 
     constructor(
         public doc: vscode.TextDocument,
-        private markUriDirty: (uri: vscode.Uri) => void,
+        public notifyDirty: () => void,
         private commentController: vscode.CommentController,
     ) {
         this.reload();
     }
     dispose() {
         /* nothing */
-    }
-    private notifyDirty() {
-        this.markUriDirty(this.doc.uri);
     }
     private get patches() {
         return [...this.history, ...this.applied,
@@ -622,7 +619,7 @@ class Stgit {
             const uri = vscode.Uri.parse(`stgit-diff:///${spec}`);
             // If the uri is already open, we must force a refresh
             if (!invariant)
-                this.markUriDirty(uri);
+                refreshDiff(uri);
             const doc = await workspace.openTextDocument(uri);
             vscode.languages.setTextDocumentLanguage(doc, 'diff');
             const showOpts: vscode.TextDocumentShowOptions = {
@@ -823,33 +820,6 @@ class Stgit {
         this.reloadPatches();
         this.fetchHistory(this.historySize);
     }
-    provideTextBlob(uri: vscode.Uri): Promise<string> {
-        const sha = uri.fragment;
-        return run('git', ['show', sha], {trim: false});
-    }
-    async provideDiff(uri: vscode.Uri): Promise<string> {
-        const args = uri.fragment.split(',').map(
-            s => (s + "=").split("=", 2) as [string, string]);
-        const d = new Map(args);
-        const diffArgs: string[] = [];
-        const index = d.get('index');
-        const sha = d.get('sha');
-        const file = d.get('file');
-        const noTrim = {trim: false};
-        let header: Promise<string> | null = null;
-        if (index)
-            diffArgs.push('--index');
-        else if (sha)
-            diffArgs.push(`${sha}^`, sha);
-        if (sha && !file)
-            header = run('git', ['show', '--stat', sha], noTrim);
-        if (file)
-            diffArgs.push('--', file);
-        const diff = run('git', ['diff', ...diffArgs], noTrim);
-        if (header)
-            return [await header, await diff].join("\n");
-        return diff;
-    }
     private moveCursorToNextPatch() {
         const list = this.patches;
         const curPatch = this.curPatch;
@@ -962,33 +932,15 @@ class StgitExtension {
                 return this.stgit?.documentContents ?? "\nIndex\n";
             }
         };
-        const blobProvider: vscode.TextDocumentContentProvider = {
-            provideTextDocumentContent: (uri, token) => {
-                return this.stgit?.provideTextBlob(uri) ?? "";
-            }
-        };
-        const diffProvider: vscode.TextDocumentContentProvider = {
-            onDidChange: this.changeEmitter.event,
-            provideTextDocumentContent: (uri, token) => {
-                return this.stgit?.provideDiff(uri) ?? "";
-            }
-        };
-        const subscriptions = context.subscriptions;
-        subscriptions.push(
-            workspace.registerTextDocumentContentProvider(
-                'stgit', provider),
-            workspace.registerTextDocumentContentProvider(
-                'stgit-blob', blobProvider),
-            workspace.registerTextDocumentContentProvider(
-                'stgit-diff', diffProvider),
-        );
         function cmd(cmd: string, func: () => void) {
             return commands.registerTextEditorCommand(`stgit.${cmd}`, func);
         }
         function globalCmd(cmd: string, func: () => void) {
             return commands.registerCommand(`stgit.${cmd}`, func);
         }
-        subscriptions.push(
+        context.subscriptions.push(
+            this,       /* self dispose */
+
             globalCmd('open', () => this.openStgit()),
             cmd('refresh', () => this.stgit?.refresh()),
             cmd('repair', () => this.stgit?.repair()),
@@ -1025,8 +977,9 @@ class StgitExtension {
             cmd('hardUndo', () => this.stgit?.hardUndo()),
             cmd('redo', () => this.stgit?.redo()),
             cmd('help', () => this.stgit?.help()),
-        );
-        subscriptions.push(
+
+            workspace.registerTextDocumentContentProvider('stgit', provider),
+
             window.onDidChangeVisibleTextEditors(editors => {
                 for (const e of editors) {
                     if (e.document.uri.scheme === 'stgit')
@@ -1044,14 +997,15 @@ class StgitExtension {
                 this.stgit?.reloadWorkTree();
             }),
         );
-        subscriptions.push(this);
         this.openStgit();
     }
     dispose() {
         this.stgit?.dispose();
+        this.stgit = null;
         this.channel.dispose();
         this.commentController.dispose();
         this.changeEmitter.dispose();
+        StgitExtension.instance = null;
     }
     private async openStgit() {
         if (this.stgit) {
@@ -1060,7 +1014,7 @@ class StgitExtension {
         } else {
             const doc = await workspace.openTextDocument(this.uri);
             this.stgit = new Stgit(doc,
-                uri => this.changeEmitter.fire(uri),
+                () => this.changeEmitter.fire(doc.uri),
                 this.commentController);
             await window.showTextDocument(doc, {
                 viewColumn: this.stgit.mainViewColumn,
@@ -1092,7 +1046,8 @@ function info(msg: string) {
 
 export function activate(context: vscode.ExtensionContext) {
     StgitExtension.instance = new StgitExtension(context);
+    registerDiffProvider(context);
 }
 export function deactivate() {
-    StgitExtension.instance = null;
+    // Nothing
 }
