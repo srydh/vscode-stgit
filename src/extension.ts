@@ -1031,7 +1031,7 @@ class StgitExtension {
                 this.stgit?.reloadWorkTree();
             }),
         );
-        context.subscriptions.push(this);
+        subscriptions.push(this);
         this.openStgit();
     }
     dispose() {
