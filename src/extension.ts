@@ -263,6 +263,8 @@ class Stgit {
     // Patch being edited in editor
     private editPatch: Patch | null = null;
 
+    mainViewColumn = window.tabGroups.all.length;
+
     constructor(
         public doc: vscode.TextDocument,
         public notifyDirty: () => void,
@@ -535,7 +537,7 @@ class Stgit {
     focusWindow() {
         window.showTextDocument(this.doc, {
             preview: false,
-            viewColumn: this.editor?.viewColumn,
+            viewColumn: this.mainViewColumn,
         });
     }
     async closeAllDiffEditors() {
@@ -884,9 +886,6 @@ class Stgit {
         const col = this.mainViewColumn;
         return (col > 1) ? col - 1 : col + 1;
     }
-    get mainViewColumn() {
-        return this.editor?.viewColumn ?? 3;
-    }
     private get repoUri(): vscode.Uri {
         const d = workspace.workspaceFolders?.[0]?.uri;
         return d ? d : vscode.Uri.parse("unknown://repo/path");
@@ -982,11 +981,15 @@ class StgitExtension {
             workspace.registerTextDocumentContentProvider('stgit', provider),
 
             window.onDidChangeVisibleTextEditors(editors => {
-                for (const e of editors) {
-                    if (e.document.uri.scheme === 'stgit')
-                        this.configureEditor(e);
+                if (this.stgit) {
+                    for (const e of editors) {
+                        if (e.document === this.stgit?.doc && e.viewColumn) {
+                            this.stgit.mainViewColumn = e.viewColumn;
+                            break;
+                        }
+                    }
                 }
-            }, context.subscriptions),
+            }),
 
             workspace.onDidCloseTextDocument((doc) => {
                 if (doc === this.stgit?.doc) {
@@ -1017,20 +1020,18 @@ class StgitExtension {
             this.stgit = new Stgit(doc,
                 () => this.changeEmitter.fire(doc.uri),
                 this.commentController);
-            await window.showTextDocument(doc, {
+            const editor = await window.showTextDocument(doc, {
                 viewColumn: this.stgit.mainViewColumn,
                 preview: false,
             });
+            const opts = editor.options;
+            opts.lineNumbers = vscode.TextEditorLineNumbersStyle.Off;
+            opts.cursorStyle = vscode.TextEditorCursorStyle.Block;
             this.stgit.moveCursorToIndexAtOpen();
         }
     }
     private get uri() {
         return vscode.Uri.from({scheme: "stgit", path: "/StGit"});
-    }
-    private configureEditor(editor: vscode.TextEditor) {
-        const opts = editor.options;
-        opts.lineNumbers = vscode.TextEditorLineNumbersStyle.Off;
-        opts.cursorStyle = vscode.TextEditorCursorStyle.Block;
     }
     log(line: string): void {
         this.channel.appendLine(line);
