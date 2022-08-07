@@ -1082,8 +1082,8 @@ class StgitExtension {
     }
 }
 
-function log(obj: string, ...args: string[]) {
-    const s = [obj, ...args].join(' ');
+function log(obj: string, ...args: {toString: () => string}[]) {
+    const s = [obj, ...args.map(s => s.toString())].join(' ');
     StgitExtension.instance?.log(s);
 }
 function info(msg: string) {
