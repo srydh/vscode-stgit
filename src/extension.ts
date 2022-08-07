@@ -594,7 +594,7 @@ class Stgit {
                 srcUri, dstUri, `Diff ${delta.path}`, opts);
         }
     }
-    async showDiff() {
+    async showDiffWithOpts(opts: {preserveFocus: boolean}) {
         const delta = this.curChange;
         const patch = this.curPatch;
         const sha = await patch?.getSha();
@@ -626,14 +626,21 @@ class Stgit {
                 this.markUriDirty(uri);
             const doc = await workspace.openTextDocument(uri);
             vscode.languages.setTextDocumentLanguage(doc, 'diff');
-            const opts: vscode.TextDocumentShowOptions = {
+            const showOpts: vscode.TextDocumentShowOptions = {
                 viewColumn: this.alternateViewColumn,
                 preview: true,
-                preserveFocus: true,
+                preserveFocus: opts.preserveFocus,
             };
-            window.showTextDocument(doc, opts);
-            vscode.commands.executeCommand('stgit.open');
+            window.showTextDocument(doc, showOpts);
+            if (opts.preserveFocus)
+                vscode.commands.executeCommand('stgit.open');
         }
+    }
+    showDiff() {
+        this.showDiffWithOpts({preserveFocus: true});
+    }
+    openDiff() {
+        this.showDiffWithOpts({preserveFocus: false});
     }
     async help() {
         vscode.commands.executeCommand(
@@ -1004,6 +1011,7 @@ class StgitExtension {
             cmd('deletePatches', () => this.stgit?.deletePatches()),
             cmd('openDiffEditor', () => this.stgit?.openDiffEditor()),
             cmd('showDiff', () => this.stgit?.showDiff()),
+            cmd('openDiff', () => this.stgit?.openDiff()),
             cmd('setHistorySize', () => this.stgit?.setHistorySize()),
             cmd('commitOrUncommitPatches',
                 () => this.stgit?.commitOrUncommitPatches()),

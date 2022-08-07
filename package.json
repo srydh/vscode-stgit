@@ -78,7 +78,11 @@
         }, {
             "command": "stgit.showDiff",
             "category": "StGit",
-            "title": "Show [Emacs Style] Diff"
+            "title": "Show Diff"
+        }, {
+            "command": "stgit.openDiff",
+            "category": "StGit",
+            "title": "Show Diff and Switch Focus"
         }, {
             "command": "stgit.markPatch",
             "category": "StGit",
@@ -296,6 +300,10 @@
         }, {
             "key": "=",
             "command": "stgit.showDiff",
+            "when": "resourceScheme == stgit && editorTextFocus"
+        }, {
+            "key": "alt-=",
+            "command": "stgit.openDiff",
             "when": "resourceScheme == stgit && editorTextFocus"
         }, {
             "key": "ctrl+c ctrl+i",
