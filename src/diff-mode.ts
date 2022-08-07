@@ -187,10 +187,16 @@ class DiffMode {
                 info("Failed to apply hunk");
                 return;
             }
-            const docEditor = await window.showTextDocument(doc);
+            this.gotoNextHunk();
+            const docEditor = await window.showTextDocument(doc, {
+                viewColumn: vscode.ViewColumn.Beside,
+                preserveFocus: true,
+                preview: false,
+            });
             const startPos = new vscode.Position(matchLine, 0);
             const endPos = startPos.translate(fromText.text.length - 1, 9999);
             const range = new vscode.Range(startPos, endPos);
+            docEditor.revealRange(range, vscode.TextEditorRevealType.InCenter);
             docEditor.edit((builder) => {
                 builder.replace(range, toText.text.join("\n"));
             });
