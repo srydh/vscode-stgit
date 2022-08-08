@@ -169,7 +169,7 @@ class Patch {
             const sha = await this.getSha();
             if (sha) {
                 this.commitMessage = await run(
-                    'git', ['show', '--format=%B', sha]);
+                    'git', ['show', '-s', '--format=%B', sha]);
             }
         }
         return this.commitMessage;
