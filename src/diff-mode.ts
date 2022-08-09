@@ -3,7 +3,8 @@
 
 import * as vscode from 'vscode';
 import { workspace, commands, window } from 'vscode';
-import { log, info } from './extension';
+import { openAndShowDiffDocument, refreshDiff } from './diff-provider';
+import { info } from './extension';
 
 function locateLineInDoc(doc: vscode.TextDocument, needle: string,
         metric: (number: number) => number): number | null {
@@ -119,6 +120,13 @@ class HunkText {
 }
 
 class Hunk {
+    /**
+     * Creates a new Hunk.
+     * @param line line number where the hunk is defined
+     * @param fromText source
+     * @param toText destination
+     * @param numHunkLines #lines defining the hunk, including the header line
+     */
     constructor(
         public readonly line: number,
         public readonly fromText: HunkText,
@@ -251,8 +259,40 @@ class DiffMode {
     revertHunk() {
         this.doApplyHunk({reverse: true});
     }
-    splitHunk(editor: vscode.TextEditor) {
-        log("splitHunk");
+    async splitHunk(editor: vscode.TextEditor) {
+        const SPLITS = /,splits=([0-9;]*)/;
+        const uri = editor.document.uri;
+        const frag = uri.fragment;
+        const spec = frag.match(SPLITS)?.[1] ?? "";
+        const oldSplits = spec ? spec.split(";").map(x => parseInt(x)) : [];
+
+        const curLine = editor.selection.start.line;
+        const line = editor.selection.start.line;
+
+        // Ensure that we only try to split an actual hunk
+        const hunk = this.findHunk(editor.document, line);
+        if (!hunk || line < hunk.line || line >= line + hunk.numHunkLines)
+            return;
+
+        // Do not allow removal of an unsplitted hunk
+        const atHunk = editor.document.lineAt(line).text.startsWith('@@');
+        if (atHunk && !oldSplits.includes(line))
+            return;
+
+        let splits: number[];
+        if (oldSplits.includes(line)) {
+            splits = oldSplits.filter(x => x !== line);
+        } else {
+            splits = [...oldSplits.map(s => s > line ? s + 1 : s), line];
+            splits.sort((a, b) => a - b);
+        }
+        const splitsFrag = `,splits=${splits.join(";")}`;
+        const newFrag = frag.replace(SPLITS, "") + splitsFrag;
+        const newUri = uri.with({fragment: newFrag});
+        refreshDiff(newUri);
+        openAndShowDiffDocument(newUri, {
+            selection: new vscode.Selection(curLine, 0, curLine, 0),
+        });
     }
     async openFile() {
         const hunk = this.hunk;

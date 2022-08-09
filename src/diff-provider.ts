@@ -63,6 +63,50 @@ class DiffProvider {
         const sha = uri.fragment;
         return run('git', ['show', sha], {trim: false});
     }
+    private fixHunkNumbering(lines: string[], hunkStart: number) {
+        const REGEXP = /@@ [-]([0-9]*),[0-9]* [+]([0-9]*),[0-9]* @@(.*)/;
+        const matches = lines[hunkStart].match(REGEXP);
+        if (!matches)
+            return;
+        const fStart = parseInt(matches[1]);
+        const tStart = parseInt(matches[2]);
+        const rest = matches[3];
+
+        let fCnt = 0;
+        let tCnt = 0;
+        for (let [i, done] = [hunkStart + 1, false]; !done; i++) {
+            switch (lines[i]?.[0]) {
+            case ' ': fCnt++; tCnt++; break;
+            case '+': tCnt++; break;
+            case '-': fCnt++; break;
+            case '@':
+                if (lines[i] == '@#') {
+                    const spec = `-${fStart + fCnt},0 +${tStart + tCnt},0`;
+                    lines[i] = `@@ ${spec} @@`;
+                }
+                done = true;
+                break;
+            default:
+                done = true;
+                break;
+            }
+        }
+        lines[hunkStart] = `@@ -${fStart},${fCnt} +${tStart},${tCnt} @@${rest}`;
+    }
+    private applyHunkSplitting(diff: string, splitSpec?: string): string {
+        if (!splitSpec)
+            return diff;
+        const splits = splitSpec.split(';').map(x => parseInt(x));
+        const diffLines = diff.split('\n');
+        splits.forEach(n => diffLines.splice(n, 0, "@#"));
+
+        diffLines.forEach((s, i) => {
+            if (s.startsWith("@@"))
+                this.fixHunkNumbering(diffLines, i);
+        });
+
+        return diffLines.join('\n');
+    }
     async provideDiff(uri: vscode.Uri): Promise<string> {
         const args = uri.fragment.split(',').map(
             s => (s + "=").split("=", 2) as [string, string]);
@@ -71,6 +115,7 @@ class DiffProvider {
         const index = d.has('index');
         const sha = d.get('sha');
         const file = d.get('file');
+        const splits = d.get('splits');
         const noTrim = {trim: false};
         let header: Promise<string> | null = null;
         if (index)
@@ -81,10 +126,9 @@ class DiffProvider {
             header = run('git', ['show', '--stat', sha], noTrim);
         if (file)
             diffArgs.push('--', file);
-        const diff = run('git', ['diff', ...diffArgs], noTrim);
-        if (header)
-            return [await header, await diff].join("\n");
-        return diff;
+        const diff = await run('git', ['diff', ...diffArgs], noTrim);
+        const contents = header ? [await header, diff].join("\n") : diff;
+        return this.applyHunkSplitting(contents, splits);
     }
 }
 
