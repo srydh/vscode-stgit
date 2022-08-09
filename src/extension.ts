@@ -4,7 +4,9 @@
 import * as vscode from 'vscode';
 import { workspace, window, commands } from 'vscode';
 import { registerDiffMode } from './diff-mode';
-import { refreshDiff, registerDiffProvider } from './diff-provider';
+import {
+    openAndShowDiffDocument, refreshDiff, registerDiffProvider
+} from './diff-provider';
 import { run, runCommand, withTempDir } from './util';
 
 async function uncommitFiles(files?: string[]) {
@@ -611,16 +613,10 @@ class Stgit {
             // If the uri is already open, we must force a refresh
             if (!invariant)
                 refreshDiff(uri);
-            const doc = await workspace.openTextDocument(uri);
-            vscode.languages.setTextDocumentLanguage(doc, 'diff');
-            const showOpts: vscode.TextDocumentShowOptions = {
+            openAndShowDiffDocument(uri, {
                 viewColumn: this.alternateViewColumn,
-                preview: true,
                 preserveFocus: opts.preserveFocus,
-            };
-            window.showTextDocument(doc, showOpts);
-            if (opts.preserveFocus)
-                vscode.commands.executeCommand('stgit.open');
+            });
         }
     }
     showDiff() {

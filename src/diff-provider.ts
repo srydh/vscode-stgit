@@ -55,9 +55,7 @@ class DiffProvider {
             else
                 info(`'${path}' is unmodified`);
         } else {
-            const doc = await workspace.openTextDocument(uri);
-            vscode.languages.setTextDocumentLanguage(doc, 'diff');
-            window.showTextDocument(doc, {preview: true});
+            openAndShowDiffDocument(uri);
         }
     }
 
@@ -88,6 +86,15 @@ class DiffProvider {
             return [await header, await diff].join("\n");
         return diff;
     }
+}
+
+export async function openAndShowDiffDocument(
+    uri: vscode.Uri, opts?: vscode.TextDocumentShowOptions
+) {
+    const doc = await workspace.openTextDocument(uri);
+    const newDoc = await vscode.languages.setTextDocumentLanguage(doc, 'diff');
+    window.showTextDocument(newDoc, {preview: true, ...opts});
+    return newDoc;
 }
 
 export function refreshDiff(uri: vscode.Uri) {
