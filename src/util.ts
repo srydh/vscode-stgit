@@ -3,6 +3,7 @@
 
 import * as os from 'os';
 import * as fs from 'fs';
+import * as fs_prom from 'fs/promises';
 import * as path from 'path';
 import { workspace } from 'vscode';
 import { spawn } from 'child_process';
@@ -57,4 +58,21 @@ export async function runCommand(
  */
 export async function run(command: string, args: string[], opts?: RunOpts) {
     return (await runCommand(command, args, opts)).stdout;
+}
+
+/**
+ * Create a temporary directory and run calllback. The
+ * directory, and its contents, is removed when the callback is finished.
+ * @param callback callback to run
+ * @returns promise which resolves to the callback return value
+ */
+export async function withTempDir<X>(
+    callback: (tmpdir: string) => X | Promise<X>
+): Promise<X> {
+    const tempDir = await fs_prom.mkdtemp(path.join(os.tmpdir(), "stgit-tmp"));
+    try {
+        return await callback(tempDir);
+    } finally {
+        fs.rm(tempDir, {recursive: true, force: true}, (err) => {/**/});
+    }
 }

@@ -2,13 +2,10 @@
 // This code is licensed under the BSD 2-Clause license.
 
 import * as vscode from 'vscode';
-import * as os from 'os';
-import * as fs from 'fs';
-import * as path from 'path';
 import { workspace, window, commands } from 'vscode';
 import { registerDiffMode } from './diff-mode';
 import { refreshDiff, registerDiffProvider } from './diff-provider';
-import { run, runCommand } from './util';
+import { run, runCommand, withTempDir } from './util';
 
 async function uncommitFiles(files?: string[]) {
     const index = await run('git', ['write-tree']);
@@ -19,20 +16,17 @@ async function uncommitFiles(files?: string[]) {
         await run('git', ['reset', '-q', 'HEAD^', '--', ...files]);
     else
         await run('git', ['read-tree', 'HEAD^']);
+
     // Workaround a problem where stgit refuses to refresh from the index if
     // a file is deleted in the index but present in the work tree.
     const gitDir = await run('git', ['rev-parse', '--absolute-git-dir']);
-    const tempDir = await new Promise<string>((resolve) => {
-        const prefix = path.join(os.tmpdir(), "stgit-tmp");
-        fs.mkdtemp(prefix, {}, (err, dirname) => { resolve(dirname); });
+    await withTempDir(async (tempDir) => {
+        const env = {
+            GIT_WORK_TREE: tempDir,
+            GIT_DIR: gitDir,
+        };
+        await runCommand('stg', ['refresh', '-i'], {env});
     });
-    const env = {
-        ...process.env,
-        GIT_WORK_TREE: tempDir,
-        GIT_DIR: gitDir,
-    };
-    const cmd = await runCommand('stg', ['refresh', '-i'], {env});
-    fs.rmdir(tempDir, (err) => {/* nothing */});
     await run('git', ['read-tree', index]);
 }
 
