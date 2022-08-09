@@ -2,8 +2,8 @@
 // This code is licensed under the BSD 2-Clause license.
 
 import * as vscode from 'vscode';
-import { workspace } from 'vscode';
-import { run } from './extension';
+import { workspace, commands, window } from 'vscode';
+import { info, run, runCommand } from './extension';
 
 class DiffProvider {
     static instance: DiffProvider | null = null;
@@ -21,18 +21,45 @@ class DiffProvider {
                 return DiffProvider.instance?.provideTextBlob(uri) ?? "";
             }
         };
+        function cmd(cmd: string, func: () => void) {
+            return commands.registerTextEditorCommand(`sdiff.${cmd}`, func);
+        }
         context.subscriptions.push(
             this,
             workspace.registerTextDocumentContentProvider(
                 'stgit-diff', diffProvider),
             workspace.registerTextDocumentContentProvider(
                 'stgit-blob', blobProvider),
+
+            cmd('openCurrentFileDiff', () => this.openCurrentFileDiff()),
         );
     }
     dispose() {
         this.changeEmitter.dispose();
         DiffProvider.instance = null;
     }
+    async openCurrentFileDiff() {
+        const editor = window.activeTextEditor;
+        if (!editor)
+            return;
+        const path = workspace.asRelativePath(editor.document.uri);
+        const uri = vscode.Uri.parse(`stgit-diff:///diff-${path}#file=${path}`);
+        refreshDiff(uri);
+        const result = await runCommand('git', ['diff', '--quiet', '--', path]);
+        if (!result.ecode) {
+            const r2 = await runCommand(
+                'git', ['ls-files', '--error-unmatch', '--', path]);
+            if (r2.ecode)
+                info(`'${path}' is not under version control`);
+            else
+                info(`'${path}' is unmodified`);
+        } else {
+            const doc = await workspace.openTextDocument(uri);
+            vscode.languages.setTextDocumentLanguage(doc, 'diff');
+            window.showTextDocument(doc, {preview: true});
+        }
+    }
+
     provideTextBlob(uri: vscode.Uri): Promise<string> {
         const sha = uri.fragment;
         return run('git', ['show', sha], {trim: false});

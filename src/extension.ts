@@ -15,7 +15,9 @@ interface RunOpts {
     env?: {[key: string]: string},
 }
 
-async function runCommand(command: string, args: string[], opts?: RunOpts) {
+export async function runCommand(
+    command: string, args: string[], opts?: RunOpts
+) {
     const cwd = workspace.workspaceFolders?.[0].uri.path ?? "/tmp/";
     const proc = spawn(command, args, {cwd: cwd, env: opts?.env});
 

@@ -10,7 +10,8 @@
         "SCM Providers"
     ],
     "activationEvents": [
-        "onCommand:stgit.open"
+        "onCommand:stgit.open",
+        "onCommand:sdiff.openCurrentFileDiff"
     ],
     "main": "./out/extension.js",
     "license": "BSD-2-Clause",
@@ -193,6 +194,10 @@
             "category": "SDiff",
             "title": "Split Diff"
         }, {
+            "command": "sdiff.openCurrentFileDiff",
+            "category": "SDiff",
+            "title": "Show Current File Changes as a Diff"
+        }, {
             "command": "sdiff.help",
             "category": "SDiff",
             "title": "Help"
@@ -372,6 +377,10 @@
             "key": "ctrl-c ctrl-s",
             "command": "sdiff.splitHunk",
             "when": "resourceScheme == stgit-diff"
+        }, {
+            "key": "ctrl-x =",
+            "command": "sdiff.openCurrentFileDiff",
+            "when": "editorTextFocus && !editorReadonly && !inDiffEditor"
         }]
     },
     "scripts": {
