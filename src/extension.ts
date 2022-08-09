@@ -1016,7 +1016,11 @@ class StgitExtension {
                     }
                 }
             }),
-
+            // this event fires when an entire tab group is added or removed
+            window.onDidChangeTextEditorViewColumn(ev => {
+                if (ev.textEditor.document === this.stgit?.doc)
+                    this.stgit.mainViewColumn = ev.viewColumn;
+            }),
             workspace.onDidCloseTextDocument((doc) => {
                 if (doc === this.stgit?.doc) {
                     this.stgit.dispose();
