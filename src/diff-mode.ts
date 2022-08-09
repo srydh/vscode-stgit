@@ -95,6 +95,11 @@ class HunkText {
         return true;
     }
 
+    /**
+     * Find HunkText instance in document.
+     * @param doc Text document in which to search for this TextHunk
+     * @returns line where the hunk matches or -1 if not found
+     */
     findInDoc(doc: vscode.TextDocument): number {
         const line = this.srcLine < doc.lineCount ?
             this.srcLine : doc.lineCount - 1;
@@ -213,30 +218,32 @@ class DiffMode {
         const [fromText, toText] = opts.reverse ?
             [hunk.toText, hunk.fromText] : [hunk.fromText, hunk.toText];
         const doc = await this.getSourceDoc(hunk);
-        if (doc) {
-            const matchLine = fromText.findInDoc(doc);
-            if (matchLine < 0) {
-                if (toText.findInDoc(doc))
-                    info("Patch already applied!");
-                else
-                    info("Failed to apply hunk");
-                return;
-            }
-            this.gotoNextHunk();
-            const docEditor = await window.showTextDocument(doc, {
-                viewColumn: vscode.ViewColumn.Beside,
-                preserveFocus: true,
-                preview: false,
-            });
-            const startPos = new vscode.Position(matchLine, 0);
-            const endPos = startPos.translate(fromText.text.length, 0);
-            const range = new vscode.Range(startPos, endPos);
-            docEditor.revealRange(range, vscode.TextEditorRevealType.InCenter);
-            const nl = toText.missingNewline ? "" : "\n";
-            docEditor.edit((builder) => {
-                builder.replace(range, toText.text.join("\n") + nl);
-            });
+        if (!doc) {
+            info("Failed to find file to patch");
+            return;
         }
+        const matchLine = fromText.findInDoc(doc);
+        if (matchLine < 0) {
+            if (toText.findInDoc(doc) != -1)
+                info("Patch already applied!");
+            else
+                info("Failed to find text to patch");
+            return;
+        }
+        this.gotoNextHunk();
+        const docEditor = await window.showTextDocument(doc, {
+            viewColumn: vscode.ViewColumn.Beside,
+            preserveFocus: true,
+            preview: false,
+        });
+        const startPos = new vscode.Position(matchLine, 0);
+        const endPos = startPos.translate(fromText.text.length, 0);
+        const range = new vscode.Range(startPos, endPos);
+        docEditor.revealRange(range, vscode.TextEditorRevealType.InCenter);
+        const nl = toText.missingNewline ? "" : "\n";
+        docEditor.edit((builder) => {
+            builder.replace(range, toText.text.join("\n") + nl);
+        });
     }
     applyHunk() {
         this.doApplyHunk({reverse: false});
