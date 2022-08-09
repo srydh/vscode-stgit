@@ -6,43 +6,9 @@ import * as os from 'os';
 import * as fs from 'fs';
 import * as path from 'path';
 import { workspace, window, commands } from 'vscode';
-import { spawn } from 'child_process';
 import { registerDiffMode } from './diff-mode';
 import { refreshDiff, registerDiffProvider } from './diff-provider';
-
-interface RunOpts {
-    trim?: boolean,
-    env?: {[key: string]: string},
-}
-
-export async function runCommand(
-    command: string, args: string[], opts?: RunOpts
-) {
-    const cwd = workspace.workspaceFolders?.[0].uri.path ?? "/tmp/";
-    const proc = spawn(command, args, {cwd: cwd, env: opts?.env});
-
-    const data: string[] = [];
-    const errorData: string[] = [];
-    proc.stdout!.on('data', (s) => { data.push(s); });
-    proc.stderr!.on('data', (s) => { errorData.push(s); });
-
-    let exitCode = -1;
-    await new Promise<void>((resolve, _) => {
-        proc.on('close', (code) => { exitCode = code ?? 1; resolve(); });
-        proc.on('error', (err) => { exitCode = -1 ; resolve(); });
-    });
-    if (exitCode !== 0)
-        log(['[failed]', command, ...args].join(' '));
-    const stdout = data.join('');
-    return {
-        stdout: opts?.trim !== false ? stdout.trimEnd() : stdout,
-        stderr: errorData.join('').trimEnd(),
-        ecode: exitCode,
-    };
-}
-export async function run(command: string, args: string[], opts?: RunOpts) {
-    return (await runCommand(command, args, opts)).stdout;
-}
+import { run, runCommand } from './util';
 
 async function uncommitFiles(files?: string[]) {
     const index = await run('git', ['write-tree']);

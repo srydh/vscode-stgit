@@ -3,7 +3,8 @@
 
 import * as vscode from 'vscode';
 import { workspace, commands, window } from 'vscode';
-import { info, run, runCommand } from './extension';
+import { info } from './extension';
+import { run, runCommand } from './util';
 
 class DiffProvider {
     static instance: DiffProvider | null = null;
