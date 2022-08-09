@@ -229,7 +229,7 @@ class DiffMode {
                 preview: false,
             });
             const startPos = new vscode.Position(matchLine, 0);
-            const endPos = startPos.translate(fromText.text.length + 1, 0);
+            const endPos = startPos.translate(fromText.text.length, 0);
             const range = new vscode.Range(startPos, endPos);
             docEditor.revealRange(range, vscode.TextEditorRevealType.InCenter);
             const nl = toText.missingNewline ? "" : "\n";
