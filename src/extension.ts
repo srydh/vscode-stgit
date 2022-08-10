@@ -7,30 +7,9 @@ import { registerDiffMode } from './diff-mode';
 import {
     openAndShowDiffDocument, refreshDiff, registerDiffProvider
 } from './diff-provider';
-import { run, runCommand, withTempDir } from './util';
+import { run, runCommand } from './util';
+import { uncommitFiles } from './git';
 
-async function uncommitFiles(files?: string[]) {
-    const index = await run('git', ['write-tree']);
-    if (index === '')
-        return;
-    await run('git', ['reset', '--mixed', '-q', 'HEAD']);
-    if (files)
-        await run('git', ['reset', '-q', 'HEAD^', '--', ...files]);
-    else
-        await run('git', ['read-tree', 'HEAD^']);
-
-    // Workaround a problem where stgit refuses to refresh from the index if
-    // a file is deleted in the index but present in the work tree.
-    const gitDir = await run('git', ['rev-parse', '--absolute-git-dir']);
-    await withTempDir(async (tempDir) => {
-        const env = {
-            GIT_WORK_TREE: tempDir,
-            GIT_DIR: gitDir,
-        };
-        await runCommand('stg', ['refresh', '-i'], {env});
-    });
-    await run('git', ['read-tree', index]);
-}
 
 class Delta {
     readonly path: string;
