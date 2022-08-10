@@ -190,6 +190,14 @@
             "category": "SDiff",
             "title": "Revert Diff"
         }, {
+            "command": "sdiff.stageHunk",
+            "category": "SDiff",
+            "title": "Stage Hunk"
+        }, {
+            "command": "sdiff.unstageHunk",
+            "category": "SDiff",
+            "title": "Unstage Hunk"
+        }, {
             "command": "sdiff.splitHunk",
             "category": "SDiff",
             "title": "Split Diff"
@@ -368,6 +376,14 @@
         }, {
             "key": "ctrl-c ctrl-u",
             "command": "sdiff.revertHunk",
+            "when": "resourceScheme == stgit-diff"
+        }, {
+            "key": "s",
+            "command": "sdiff.stageHunk",
+            "when": "resourceScheme == stgit-diff"
+        }, {
+            "key": "u",
+            "command": "sdiff.unstageHunk",
             "when": "resourceScheme == stgit-diff"
         }, {
             "key": "enter",

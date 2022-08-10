@@ -4,7 +4,9 @@
 import * as vscode from 'vscode';
 import { workspace, commands, window } from 'vscode';
 import { openAndShowDiffDocument, refreshDiff } from './diff-provider';
-import { info } from './extension';
+import { info, reloadIndexAndWorkTree } from './extension';
+import { updateIndex } from './git';
+import { run } from './util';
 
 function locateLineInDoc(doc: vscode.TextDocument, needle: string,
         metric: (number: number) => number): number | null {
@@ -86,14 +88,43 @@ class HunkText {
             new HunkText(srcLine, lines, lineMap, missingNewline) : null;
     }
 
-    private matchesAtLine(doc: vscode.TextDocument, line: number) {
-        if (line < 0 || line + this.text.length > doc.lineCount)
+    private matchesAtLine(
+        doc: {numLines: number, getLine: (line: number) => string},
+        line: number
+    ) {
+        if (line < 0 || line + this.text.length > doc.numLines)
             return false;
         for (let i = 0; i < this.text.length; i++) {
-            if (doc.lineAt(i + line).text !== this.text[i])
+            if (doc.getLine(i + line) !== this.text[i])
                 return false;
         }
         return true;
+    }
+
+    private find(doc: {
+        numLines: number,
+        getLine: (line: number) => string,
+    }) {
+        const line = Math.min(this.srcLine, doc.numLines - 1);
+        if (this.matchesAtLine(doc, line))
+            return line;
+        for (let offs = 1; ; offs += 1) {
+            const upLine = line - offs;
+            const downLine = line + offs;
+            if (upLine < 0 && downLine >= doc.numLines)
+                return -1;
+            if (this.matchesAtLine(doc, upLine))
+                return upLine;
+            if (this.matchesAtLine(doc, downLine))
+                return downLine;
+        }
+    }
+
+    findInText(lines: string[]): number {
+        return this.find({
+            numLines: lines.length,
+            getLine: i => lines[i],
+        });
     }
 
     /**
@@ -102,20 +133,10 @@ class HunkText {
      * @returns line where the hunk matches or -1 if not found
      */
     findInDoc(doc: vscode.TextDocument): number {
-        const line = this.srcLine < doc.lineCount ?
-            this.srcLine : doc.lineCount - 1;
-        if (this.matchesAtLine(doc, line))
-            return line;
-        for (let offs = 1; ; offs += 1) {
-            const upLine = line - offs;
-            const downLine = line + offs;
-            if (upLine < 0 && downLine >= doc.lineCount)
-                return -1;
-            if (this.matchesAtLine(doc, upLine))
-                return upLine;
-            if (this.matchesAtLine(doc, downLine))
-                return downLine;
-        }
+        return this.find({
+            numLines: doc.lineCount,
+            getLine: i => doc.lineAt(i).text,
+        });
     }
 }
 
@@ -177,6 +198,8 @@ class DiffMode {
         subscriptions.push(
             cmd('applyHunk', () => this.applyHunk()),
             cmd('revertHunk', () => this.revertHunk()),
+            cmd('stageHunk', () => this.stageHunk()),
+            cmd('unstageHunk', () => this.unstageHunk()),
             cmd('splitHunk', (e) => this.splitHunk(e)),
             cmd('openFile', () => this.openFile()),
             cmd('help', () => this.help()),
@@ -258,6 +281,44 @@ class DiffMode {
     }
     revertHunk() {
         this.doApplyHunk({reverse: true});
+    }
+    private async stageOrUnstageHunk(opts: {stage: boolean}) {
+        const hunk = this.hunk;
+        const header = this.getHeader(hunk);
+        if (!hunk || !header)
+            return;
+        const index = await run(
+            'git', ['show', `:${header.toPath}`], {trim: false});
+        if (!index)
+            return;
+        const lines = index.split("\n");
+
+        const [fromText, toText] = opts.stage ?
+            [hunk.fromText, hunk.toText] : [hunk.toText, hunk.fromText];
+        this.selectHunk(hunk);
+        const matchLine = fromText.findInText(lines);
+        if (matchLine < 0) {
+            if (toText.findInText(lines) != -1)
+                info("Patch already staged!");
+            else
+                info("Failed to find text to patch");
+            return;
+        }
+        lines.splice(matchLine, fromText.text.length, ...toText.text);
+        if (fromText.missingNewline && !toText.missingNewline)
+            lines.push("");
+        else if (toText.missingNewline && !fromText.missingNewline)
+            lines.pop();
+        const newContents = lines.join("\n");
+        await updateIndex(header.toPath, {data: newContents});
+        reloadIndexAndWorkTree();
+        this.gotoNextHunk();
+    }
+    stageHunk() {
+        this.stageOrUnstageHunk({stage: true});
+    }
+    unstageHunk() {
+        this.stageOrUnstageHunk({stage: false});
     }
     async splitHunk(editor: vscode.TextEditor) {
         const SPLITS = /,splits=([0-9;]*)/;
