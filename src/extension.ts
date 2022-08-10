@@ -300,13 +300,16 @@ class Stgit {
         this.applied = patches.filter(p => p.kind !== '-');
         this.notifyDirty();
     }
-    async reload() {
+    reload() {
         this.fetchBranchName();
         this.reloadPatches();
         this.fetchHistory(this.historySize);
+        this.reloadIndexAndWorkTree();
+        this.checkForRepair();
+    }
+    reloadIndexAndWorkTree() {
         this.reloadIndex();
         this.reloadWorkTree();
-        this.checkForRepair();
     }
     async fetchBranchName() {
         const branch = await run('git', ['symbolic-ref', '--short', 'HEAD']);
@@ -723,15 +726,13 @@ class Stgit {
             } else {
                 await run('git', ['add', '-u']);
             }
-            this.reloadIndex();
-            this.reloadWorkTree();
+            this.reloadIndexAndWorkTree();
         } else if (patch?.kind == 'I') {
             if (change)
                 await run('git', ['restore', '-S', '--', change.path]);
             else
                 await run('git', ["reset", "HEAD"]);
-            this.reloadIndex();
-            this.reloadWorkTree();
+            this.reloadIndexAndWorkTree();
         } else if (patch && patch === this.applied.at(-1)) {
             if (change)
                 await uncommitFiles([change.path]);
@@ -760,8 +761,7 @@ class Stgit {
                 await run('git', ['restore', '--', ...files]);
             }
         }
-        this.reloadIndex();
-        this.reloadWorkTree();
+        this.reloadIndexAndWorkTree();
     }
     async undo() {
         await run('stg', ['undo']);
@@ -903,7 +903,7 @@ class Stgit {
 
 class StgitExtension {
     static instance: StgitExtension | null;
-    private stgit: Stgit | null = null;
+    public stgit: Stgit | null = null;
     private changeEmitter = new vscode.EventEmitter<vscode.Uri>();
     private channel = window.createOutputChannel('stgit');
     private commentController = vscode.comments.createCommentController(
@@ -1023,6 +1023,10 @@ class StgitExtension {
     log(line: string): void {
         this.channel.appendLine(line);
     }
+}
+
+export function reloadIndexAndWorkTree() {
+    StgitExtension.instance?.stgit?.reloadIndexAndWorkTree();
 }
 
 export function log(obj: string, ...args: {toString: () => string}[]) {
