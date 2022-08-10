@@ -13,6 +13,7 @@ interface RunOpts {
     trim?: boolean,
     env?: {[key: string]: string},
     cwd?: string,
+    stdin?: string,
 }
 
 /**
@@ -29,8 +30,16 @@ export async function runCommand(
     if (!cwd)
         return {stdout: "", stderr: "", ecode: -1};
     const env = opts?.env ? {...process.env, ...opts.env} : undefined;
-    const proc = spawn(command, args, {cwd, env});
-
+    const stdinPipe = opts?.stdin ? 'pipe' : 'ignore';
+    const proc = spawn(command, args, {
+        cwd: cwd,
+        env: env,
+        stdio: [stdinPipe, 'pipe', 'pipe']
+    });
+    if (opts?.stdin) {
+        proc.stdin!.write(opts.stdin);
+        proc.stdin!.end();
+    }
     const data: string[] = [];
     const errorData: string[] = [];
     proc.stdout!.on('data', (s) => { data.push(s); });
