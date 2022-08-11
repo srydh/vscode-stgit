@@ -47,6 +47,9 @@ class Delta {
         const s = `${what}${this.permissionDelta}`;
         return `    ${s.padEnd(16)} ${this.path}`;
     }
+    static fromDiff(diffOutput: string): Delta[] {
+        return diffOutput.split("\n").filter(s => s).map(s => new Delta(s));
+    }
 }
 
 class Patch {
@@ -88,10 +91,6 @@ class Patch {
                 this.lines.push("    <no files>");
             }
         }
-    }
-    protected makeDeltas(diffOutput: string) {
-        const entries = diffOutput.split("\n").filter(s => s.includes("\t"));
-        this.deltas = entries.map(s => new Delta(s));
     }
     protected async doFetchDetails(): Promise<void> { /* virtual */ }
     setMarked(marked: boolean): boolean { return false; }
@@ -135,8 +134,9 @@ class StGitPatch extends Patch {
     }
     protected async doFetchDetails(): Promise<void> {
         this.sha = await run('stg', ["id", "--", this.label]);
-        const tree = await run('git', ["diff-tree", "-r", this.sha]);
-        this.makeDeltas(tree);
+        const tree = await run(
+            'git', ['diff-tree', '--no-commit-id', '-r', this.sha]);
+        this.deltas = Delta.fromDiff(tree);
     }
     setMarked(marked: boolean) {
         const changed = this.marked !== marked;
@@ -152,8 +152,8 @@ class WorkTree extends Patch {
     }
     protected async doFetchDetails(): Promise<void> {
         await run('git', ["update-index", "-q", "--refresh"]);
-        const tree = await run('git', ["diff-files", "-0"], {trim: false});
-        this.makeDeltas(tree);
+        const tree = await run('git', ["diff-files", "-0"]);
+        this.deltas = Delta.fromDiff(tree);
     }
 }
 
@@ -164,7 +164,7 @@ class Index extends Patch {
     }
     protected async doFetchDetails(): Promise<void> {
         const tree = await run('git', ["diff-index", "--cached", "HEAD"]);
-        this.makeDeltas(tree);
+        this.deltas = Delta.fromDiff(tree);
     }
 }
 
@@ -175,8 +175,9 @@ class History extends Patch {
         this.sha = sha;
     }
     protected async doFetchDetails(): Promise<void> {
-        const tree = await run('git', ['diff-tree', '-r', this.sha]);
-        this.makeDeltas(tree);
+        const tree = await run(
+            'git', ['diff-tree', '--no-commit-id', '-r', this.sha]);
+        this.deltas = Delta.fromDiff(tree);
     }
     static async fromRev(rev: string, limit: number) {
         if (limit === 0)
