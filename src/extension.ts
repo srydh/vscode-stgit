@@ -566,6 +566,24 @@ class Stgit {
                 srcUri, dstUri, `Diff ${delta.path}`, opts);
         }
     }
+    private async selectMergeDiffMode(delta: Delta): Promise<string | null> {
+        if (!delta.conflict)
+            return "";
+        const modes = [
+            {desc: '1 - Incoming Changes (base -> theirs)', mode: "13"},
+            {desc: '2 - Local Changes (base -> ours)', mode: "12"},
+            {desc: '3 - Our (ours -> work tree)', mode: "2"},
+            {desc: '4 - Theirs (theirs -> work tree)', mode: "3"},
+        ];
+        const labels = modes.map(s => s.desc);
+        const s = await window.showQuickPick(labels, {
+            placeHolder: "Select diff type"
+        });
+        if (!s)
+            return null;
+        const mode = modes[labels.indexOf(s)].mode;
+        return `,diffmode=${mode}`;
+    }
     async showDiffWithOpts(opts: {preserveFocus: boolean}) {
         const delta = this.curChange;
         const patch = this.curPatch;
@@ -580,10 +598,14 @@ class Stgit {
                 spec = `diff-${s}#sha=${sha}`;
             invariant = true;   // Diff contents never changes
         } else if (patch?.kind === 'I') {
-            if (delta)
-                spec = `diff-index-${delta.path}#index,file=${delta.path}`;
-            else
+            if (delta) {
+                const m = await this.selectMergeDiffMode(delta);
+                if (m === null)
+                    return;
+                spec = `diff-index-${delta.path}#index,file=${delta.path}${m}`;
+            } else {
                 spec = `diff-index#index`;
+            }
         } else if (patch?.kind === 'W') {
             if (delta)
                 spec = `diff-${delta.path}#file=${delta.path}`;

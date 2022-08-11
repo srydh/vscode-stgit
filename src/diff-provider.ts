@@ -116,16 +116,38 @@ class DiffProvider {
         const sha = d.get('sha');
         const file = d.get('file');
         const splits = d.get('splits');
+        const diffmode = d.get('diffmode');
         const noTrim = {trim: false};
         let header: Promise<string> | null = null;
-        if (index)
-            diffArgs.push('--cached');
-        else if (sha)
-            diffArgs.push(`${sha}^`, sha);
-        if (sha && !file)
-            header = run('git', ['show', '--stat', sha], noTrim);
-        if (file)
-            diffArgs.push('--', file);
+        if (file && diffmode) {
+            switch (diffmode) {
+            case '13':
+                diffArgs.push(`:1:${file}`, `:3:${file}`);
+                break;
+            case '12':
+                diffArgs.push(`:1:${file}`, `:2:${file}`);
+                break;
+            case '2':
+                diffArgs.push('-2', '--', file);
+                break;
+            case '3':
+                diffArgs.push('-3', '--', file);
+                break;
+            default:
+                return "* bad diff mode";
+            }
+        } else {
+            if (index)
+                diffArgs.push('--cached');
+            else if (sha)
+                diffArgs.push(`${sha}^`, sha);
+            else
+                diffArgs.push('-2');
+            if (sha && !file)
+                header = run('git', ['show', '--stat', sha], noTrim);
+            if (file)
+                diffArgs.push('--', file);
+        }
         const diff = await run('git', ['diff', ...diffArgs], noTrim);
         const contents = header ? [await header, diff].join("\n") : diff;
         return this.applyHunkSplitting(contents, splits);
