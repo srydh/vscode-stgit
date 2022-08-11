@@ -7,7 +7,7 @@ import { registerDiffMode } from './diff-mode';
 import {
     openAndShowDiffDocument, refreshDiff, registerDiffProvider
 } from './diff-provider';
-import { run, runCommand } from './util';
+import { run, runAndReportErrors, runCommand } from './util';
 import { uncommitFiles } from './git';
 
 
@@ -369,9 +369,9 @@ class Stgit {
     async gotoPatch() {
         const p = this.curPatch;
         if (p?.label)
-            await run('stg', ['goto', '--', p.label]);
+            await runAndReportErrors('stg', ['goto', '--', p.label]);
         else if (p?.kind === 'H')
-            await run('stg', ['pop', '-a', ]);
+            await runAndReportErrors('stg', ['pop', '-a', ]);
         else
             return;
         this.reload();
@@ -394,10 +394,10 @@ class Stgit {
         }
         if (popped.length) {
             const patches = popped.map(p => p.label);
-            await run('stg', ['push', '--', ...patches]);
+            await runAndReportErrors('stg', ['push', '--', ...patches]);
         } else if (applied.length) {
             const patches = applied.map(p => p.label);
-            await run('stg', ['pop', '--', ...patches]);
+            await runAndReportErrors('stg', ['pop', '--', ...patches]);
         }
         this.reload();
     }
@@ -743,23 +743,23 @@ class Stgit {
         this.reloadIndexAndWorkTree();
     }
     async undo() {
-        await run('stg', ['undo']);
+        await runAndReportErrors('stg', ['undo']);
         this.reload();
     }
     async hardUndo() {
-        await run('stg', ['undo', '--hard']);
+        await runAndReportErrors('stg', ['undo', '--hard']);
         this.reload();
     }
     async redo() {
-        await run('stg', ['redo']);
+        await runAndReportErrors('stg', ['redo']);
         this.reload();
     }
     async popCurrentPatch() {
-        await run('stg', ['pop']);
+        await runAndReportErrors('stg', ['pop']);
         this.reload();
     }
     async pushNextPatch() {
-        await run('stg', ['push']);
+        await runAndReportErrors('stg', ['push']);
         this.reload();
     }
     async setHistorySize() {
