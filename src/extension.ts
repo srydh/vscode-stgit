@@ -756,7 +756,12 @@ class Stgit {
             }
         } else if (patch?.kind === 'W') {
             if (change) {
-                await run('git', ['restore', '--', change.path]);
+                if (change.conflict) {
+                    // Redo index merge
+                    await run('git', ['checkout', '-m', change.path]);
+                } else {
+                    await run('git', ['restore', '--', change.path]);
+                }
             } else {
                 const files = patch.deltas.map(d => d.path);
                 await run('git', ['restore', '--', ...files]);
