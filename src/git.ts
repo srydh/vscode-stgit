@@ -12,14 +12,13 @@ export async function updateIndex(
     let sha: string | undefined;
 
     if (contents.data === undefined || contents.mode === undefined) {
-        const tree = await run('git', ['write-tree']);
-        const info = await run('git', ['ls-tree', tree, '--', path]);
-        const re = /([0-9]*) [a-z]* ([a-fA-F0-9]*)/;
-        [, mode, sha] = info.match(re) ?? [];
+        const s = await run('git', ['ls-files', '-s', '-z', '--', path]);
+        const re = /([0-9]*) ([0-9a-f]*) [0-3]/;
+        [, mode, sha] = s.match(re) ?? [];
     }
     if (!mode)
         mode = "100644";
-    if (contents.data) {
+    if (contents.data !== undefined) {
         sha = await run('git', ['hash-object', '-w', '--stdin'], {
             stdin: contents.data ?? ""
         });
