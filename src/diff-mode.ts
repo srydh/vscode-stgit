@@ -271,7 +271,7 @@ class DiffMode {
         const endPos = startPos.translate(fromText.text.length, 0);
         const range = new vscode.Range(startPos, endPos);
         docEditor.revealRange(range, vscode.TextEditorRevealType.InCenter);
-        const nl = toText.missingNewline ? "" : "\n";
+        const nl = (toText.missingNewline || !toText.text.length)? "" : "\n";
         docEditor.edit((builder) => {
             builder.replace(range, toText.text.join("\n") + nl);
         });
