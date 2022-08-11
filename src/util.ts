@@ -7,7 +7,7 @@ import * as fs_prom from 'fs/promises';
 import * as path from 'path';
 import { workspace } from 'vscode';
 import { spawn } from 'child_process';
-import { log } from './extension';
+import { log, info } from './extension';
 
 interface RunOpts {
     trim?: boolean,
@@ -68,6 +68,21 @@ export async function runCommand(
 export async function run(command: string, args: string[], opts?: RunOpts) {
     return (await runCommand(command, args, opts)).stdout;
 }
+
+export async function runAndReportErrors(
+    command: string,
+    args: string[],
+    opts?: RunOpts
+) {
+    const result = await runCommand(command, args, opts);
+    if (result.ecode) {
+        const m = result.stderr.split("\n").filter(
+            s => s.includes(':')).join("\n");
+        info(m || result.stderr);
+    }
+    return result;
+}
+
 
 /**
  * Create a temporary directory and run calllback. The
