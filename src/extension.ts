@@ -10,6 +10,11 @@ import {
 import { run, runAndReportErrors, runCommand } from './util';
 import { uncommitFiles } from './git';
 
+interface IndexStageInfo {
+    perm: string;
+    sha: string;
+    stage: number
+}
 
 class Delta {
     readonly path: string;
@@ -19,6 +24,7 @@ class Delta {
     readonly added: boolean;
     readonly conflict: boolean;
     readonly permissionDelta: string;
+    private indexStageInfo: IndexStageInfo[] = [];
 
     constructor(s: string) {
         const [part1, name] = s.split("\t");
@@ -36,7 +42,25 @@ class Delta {
         this.path = name;
         this.permissionDelta = perm;
     }
-    public get docLine() {
+    attachIndexStageInfo(stageInfo: IndexStageInfo[]) {
+        this.indexStageInfo = stageInfo;
+    }
+    private get stageInfoString() {
+        if (!this.indexStageInfo.length)
+            return "";
+        const m = this.indexStageInfo.reduce(
+            (s, e) => s | (1 << (e.stage - 1)), 0);
+        if (m === 3)
+            return "(deleted by them)";
+        if (m === 5)
+            return "(deleted by us)";
+        if (m === 6)
+            return "(added by both)";
+        if (m === 7)
+            return "";
+        return `(stage ${m})`;
+    }
+    get docLine() {
         let what = "Modified";
         if (this.conflict)
             what = "Unresolved";
@@ -45,7 +69,11 @@ class Delta {
         if (this.added)
             what = "Added";
         const s = `${what}${this.permissionDelta}`;
-        return `    ${s.padEnd(16)} ${this.path}`;
+        const s2 = `    ${s.padEnd(16)} ${this.path}`;
+        const sinfo = this.stageInfoString;
+        if (!sinfo)
+            return s2;
+        return `${s2.padEnd(50)} ${sinfo}`;
     }
     static fromDiff(diffOutput: string): Delta[] {
         return diffOutput.split("\n").filter(s => s).map(s => new Delta(s));
@@ -164,7 +192,29 @@ class Index extends Patch {
     }
     protected async doFetchDetails(): Promise<void> {
         const tree = await run('git', ["diff-index", "--cached", "HEAD"]);
-        this.deltas = Delta.fromDiff(tree);
+        const deltas = Delta.fromDiff(tree);
+
+        // Fetch information about index stages
+        if (deltas.some(x => x.conflict)) {
+            const s = await run('git', ['ls-files', '-u', '-z']);
+            const entries = s.split("\0");
+            const regexp = /([0-9]*) ([0-9a-f]*) ([1-3]*)\t(.*)/;
+            for (const d of deltas.filter(d => d.conflict)) {
+                const indexStageInfo: IndexStageInfo[] = [];
+                for (const e of entries) {
+                    const m = e.match(regexp);
+                    if (m?.[4] === d.path) {
+                        indexStageInfo.push({
+                            perm: m[1],
+                            sha: m[2],
+                            stage: parseInt(m[3]),
+                        });
+                    }
+                }
+                d.attachIndexStageInfo(indexStageInfo);
+            }
+        }
+        this.deltas = deltas;
     }
 }
 
