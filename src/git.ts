@@ -4,6 +4,13 @@
 import { log } from "./extension";
 import { run, runCommand, withTempDir } from "./util";
 
+export async function isUnmerged(path: string) {
+    const s = await run('git', ['ls-files', '-s', '-z', '--', path]);
+    const re = /[0-9]* [0-9a-f]* ([0-3])/;
+    const [, stage] = s.match(re) ?? [];
+    return stage && stage !== '0';
+}
+
 export async function updateIndex(
     path: string,
     contents: {data?: string, mode?: string}

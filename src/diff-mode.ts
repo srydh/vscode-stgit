@@ -5,8 +5,8 @@ import * as vscode from 'vscode';
 import { workspace, commands, window } from 'vscode';
 import { openAndShowDiffDocument, refreshDiff } from './diff-provider';
 import { info, reloadIndexAndWorkTree } from './extension';
-import { updateIndex } from './git';
-import { run } from './util';
+import { isUnmerged, updateIndex } from './git';
+import { runCommand } from './util';
 
 function locateLineInDoc(doc: vscode.TextDocument, needle: string,
         metric: (number: number) => number): number | null {
@@ -287,10 +287,17 @@ class DiffMode {
         const header = this.getHeader(hunk);
         if (!hunk || !header)
             return;
-        const index = await run(
-            'git', ['show', `:${header.toPath}`], {trim: false});
-        if (!index)
+        const path = header.toPath;
+        const indexResult = await runCommand(
+            'git', ['show', `:${path}`], {trim: false});
+        if (indexResult.ecode) {
+            if (await isUnmerged(path))
+                info(`'${path}' is unmerged`);
+            else
+                info(`'${path}' is not under version control`);
             return;
+        }
+        const index = indexResult.stdout;
         const usesCRLF = index.includes('\r\n');
         const lines = index.replace(/\r\n/g, '\n').split('\n');
 
