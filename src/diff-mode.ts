@@ -71,7 +71,7 @@ class HunkText {
             return null;
         const [lineStr, countStr] = spec.slice(1).split(",");
         const srcLine = parseInt(lineStr) - 1;
-        const numLines = parseInt(countStr);
+        const numLines = parseInt(countStr ?? "1");
 
         const lines: string[] = [];
         const lineMap: number[] = [];
