@@ -317,7 +317,7 @@ class Stgit {
         const stgHead = await stgHeadPromise;
         const gitHead = await gitHeadPromise;
         const needRepair = (stgHead !== gitHead) && stgHead !== '';
-        if (this.needRepair !== this.needRepair) {
+        if (this.needRepair !== needRepair) {
             this.needRepair = needRepair;
             this.notifyDirty();
         }
