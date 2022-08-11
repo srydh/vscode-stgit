@@ -291,7 +291,8 @@ class DiffMode {
             'git', ['show', `:${header.toPath}`], {trim: false});
         if (!index)
             return;
-        const lines = index.split("\n");
+        const usesCRLF = index.includes('\r\n');
+        const lines = index.replace(/\r\n/g, '\n').split('\n');
 
         const [fromText, toText] = opts.stage ?
             [hunk.fromText, hunk.toText] : [hunk.toText, hunk.fromText];
@@ -309,7 +310,7 @@ class DiffMode {
             lines.push("");
         else if (toText.missingNewline && !fromText.missingNewline)
             lines.pop();
-        const newContents = lines.join("\n");
+        const newContents = lines.join(usesCRLF ? '\r\n' : '\n');
         await updateIndex(header.toPath, {data: newContents});
         reloadIndexAndWorkTree();
         this.gotoNextHunk();
