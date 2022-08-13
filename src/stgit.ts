@@ -766,16 +766,18 @@ class StGitDoc {
         this.reload();
     }
     async switchBranch() {
-        if (this.index.deltas.length || this.workTree.deltas.length)
+        if (this.index.deltas.length || this.workTree.deltas.length) {
+            info("Work tree and index must be clean to switch branch");
             return;
+        }
         const branches = run('git', ['branch']).then<string[]>((s) => {
-            return s.replace("*", "").split("\n").map(s => s.trim());
+            return s.split("\n").map(s => s.replace(/^[*+]/, "").trim());
         });
         const branch = await window.showQuickPick(branches, {
             placeHolder: "Select branch to checkout"
         });
         if (branch) {
-            await run('git', ['switch', branch]);
+            await runAndReportErrors('git', ['switch', branch]);
             this.reload();
         }
     }
