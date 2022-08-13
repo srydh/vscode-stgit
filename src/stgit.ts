@@ -210,15 +210,31 @@ class StGitPatch extends Patch {
 }
 
 class WorkTree extends Patch {
-    constructor() {
+    constructor(
+        private readonly displayingUnknownFiles: boolean,
+    ) {
         super("Work Tree", "", 'W', false);
         this.expanded = true;
     }
+    private async fetchUnknownFiles(): Promise<string> {
+        if (!this.displayingUnknownFiles)
+            return "";
+        const unknownFiles = await run(
+            'git', ['ls-files', '--exclude-standard', '-o', '-z']);
+        return unknownFiles.split("\0").filter(x => x).map(x => (
+            ':000000 000000' +
+            ' 0000000000000000000000000000000000000000' +
+            ' 0000000000000000000000000000000000000000' +
+            ` O\0${x}\0`)).join("");
+    }
+
     protected async doFetchDetails(): Promise<void> {
         await run('git', ['update-index', '-q', '--refresh']);
-        const tree = await run(
-            'git', ['diff-files', ...RENAMEOPTS, '-z', '-0']);
-        this.deltas = Delta.fromDiff(tree);
+        const result = await Promise.all([
+            run('git', ['diff-files', ...RENAMEOPTS, '-z', '-0']),
+            this.fetchUnknownFiles(),
+        ]);
+        this.deltas = Delta.fromDiff(result.join(""));
     }
 }
 
@@ -287,11 +303,13 @@ function sleep(ms: number) {
 }
 
 class StGitDoc {
+    private displayingUnknownFiles = false;
+
     private history: Patch[] = [];
     private applied: Patch[] = [];
     private popped: Patch[] = [];
     private index: Patch = new Index();
-    private workTree: Patch = new WorkTree();
+    private workTree: Patch = new WorkTree(this.displayingUnknownFiles);
     private needRepair = false;
     private stgMissing = false;
     private branchInitialized = true;
@@ -352,7 +370,7 @@ class StGitDoc {
         this.notifyDirty();
     }
     async reloadWorkTree() {
-        const workTree = new WorkTree();
+        const workTree = new WorkTree(this.displayingUnknownFiles);
         await workTree.updateFromOld(this.workTree);
         await workTree.fetchDetails();
         this.workTree = workTree;
@@ -925,6 +943,11 @@ class StGitDoc {
         this.reloadPatches();
         this.fetchHistory(this.historySize);
     }
+    toggleShowingUnknownFiles() {
+        this.displayingUnknownFiles = !this.displayingUnknownFiles;
+        this.reloadWorkTree();
+    }
+
     private moveCursorToNextPatch() {
         const list = this.patches;
         const curPatch = this.curPatch;
@@ -1065,6 +1088,8 @@ class StGitMode {
             cmd('unmarkPatch', () => this.stgit?.unmarkPatch()),
             cmd('toggleExpand', () => this.stgit?.toggleExpand()),
             cmd('toggleChanges', () => this.stgit?.toggleChanges()),
+            cmd('toggleShowingUnknown',
+                () => this.stgit?.toggleShowingUnknownFiles()),
             cmd('createPatch', () => this.stgit?.createPatch()),
             cmd('newPatch', () => this.stgit?.newPatch()),
             cmd('pushOrPopPatches', () => this.stgit?.pushOrPopPatches()),

@@ -101,6 +101,10 @@
             "category": "StGit",
             "title": "Toggle Expand"
         }, {
+            "command": "stgit.toggleShowingUnknown",
+            "category": "StGit",
+            "title": "Toggle Showing Unknown Files"
+        }, {
             "command": "stgit.repair",
             "category": "StGit",
             "title": "Repair (accomodate changes made with plain Git)",
@@ -317,6 +321,10 @@
         }, {
             "key": "enter",
             "command": "stgit.toggleExpand",
+            "when": "resourceScheme == stgit && editorTextFocus"
+        }, {
+            "key": "t",
+            "command": "stgit.toggleShowingUnknown",
             "when": "resourceScheme == stgit && editorTextFocus"
         }, {
             "key": "shift+R",
