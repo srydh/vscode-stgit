@@ -9,40 +9,50 @@ import { log, info } from './extension';
 import { uncommitFiles } from './git';
 import { RepositoryInfo } from './repo';
 
+const RENAMEOPTS: readonly string[] = ['--no-renames'];
+
 interface IndexStageInfo {
     perm: string;
     sha: string;
     stage: number
 }
+type DeltaKind = keyof(typeof Delta.STATUS_MESSAGE);
 
 class Delta {
-    readonly path: string;
-    readonly srcSha: string;
-    readonly destSha: string;
-    readonly deleted: boolean;
-    readonly added: boolean;
-    readonly conflict: boolean;
-    readonly permissionDelta: string;
     private indexStageInfo: IndexStageInfo[] = [];
 
-    constructor(s: string) {
-        const [part1, name] = s.split("\t");
-        const [srcMod, destMod, srcSha, destSha] = part1.slice(1).split(" ");
-        let perm = "";
-        if (!srcMod.includes("755") && destMod.includes("755"))
-            perm = " +x";
-        else if (srcMod.includes("755") && destMod.includes("644"))
-            perm = " -x";
-        this.srcSha = srcSha;
-        this.destSha = destSha;
-        this.conflict = part1.endsWith('U');
-        this.deleted = part1.endsWith('D');
-        this.added = part1.endsWith('A');
-        this.path = name;
-        this.permissionDelta = perm;
-    }
+    static readonly STATUS_MESSAGE = {
+        M: "Modified",
+        D: "Deleted",
+        A: "Added",
+        O: "<unknown>",
+        U: "Unresolved",
+        R: "Rename",
+        C: "Copy",
+        T: "FileType",
+        X: "X-Unknown",
+    };
+
+    constructor(
+        private readonly srcMode: string,
+        private readonly destMode: string,
+        readonly srcSha: string,
+        readonly destSha: string,
+        private readonly status: DeltaKind,
+        private readonly score: string,
+        readonly path: string,
+        readonly destPath: string | undefined,
+    ) {}
+
     attachIndexStageInfo(stageInfo: IndexStageInfo[]) {
         this.indexStageInfo = stageInfo;
+    }
+
+    get deleted() {
+        return this.status.startsWith('D');
+    }
+    get conflict() {
+        return this.status.startsWith('U');
     }
     private get stageInfoString() {
         if (!this.indexStageInfo.length)
@@ -59,23 +69,50 @@ class Delta {
             return "";
         return `(stage ${m})`;
     }
+    private get permissionDelta(): string {
+        if (this.srcMode !== "100755" && this.destMode === "100755")
+            return " +x";
+        else if (this.srcMode === "100755" && this.destMode === "100644")
+            return " -x";
+        return "";
+    }
     get docLine() {
-        let what = "Modified";
-        if (this.conflict)
-            what = "Unresolved";
-        if (this.deleted)
-            what = "Deleted";
-        if (this.added)
-            what = "Added";
+        const what = Delta.STATUS_MESSAGE[this.status];
         const s = `${what}${this.permissionDelta}`;
-        const s2 = `    ${s.padEnd(16)} ${this.path}`;
+        const dest = this.destPath ? ` -> ${this.destPath}` : '';
+        const s2 = `    ${s.padEnd(16)} ${this.path}${dest}`;
         const sinfo = this.stageInfoString;
-        if (!sinfo)
+        if (!sinfo && !dest)
             return s2;
         return `${s2.padEnd(50)} ${sinfo}`;
     }
     static fromDiff(diffOutput: string): Delta[] {
-        return diffOutput.split("\n").filter(s => s).map(s => new Delta(s));
+        const entries: Delta[] = [];
+        for (let s = diffOutput;;) {
+            const i0 = s.indexOf('\0');
+            const spec = s.slice(1, i0);
+            const [sMode, dMode, srcSha, destSha, status] = spec.split(" ");
+
+            const i1 = s.indexOf('\0', i0 + 1);
+            if (i1 < 0)
+                break;
+            const name = s.slice(i0 + 1, i1);
+
+            let destName = undefined;
+            if (status[0] === 'R' || status[0] === 'C') {
+                const i2 = s.indexOf('\0', i1 + 1);
+                destName = s.slice(i1 + 1, i2);
+                s = s.slice(i2 + 1);
+            } else {
+                s = s.slice(i1 + 1);
+            }
+            const score = status.slice(1);
+            const kind: DeltaKind = (status[0] in Delta.STATUS_MESSAGE) ?
+                status[0] as DeltaKind : 'X';
+            entries.push(new Delta(
+                sMode, dMode, srcSha, destSha, kind, score, name, destName));
+        }
+        return entries;
     }
 }
 
@@ -161,8 +198,8 @@ class StGitPatch extends Patch {
     }
     protected async doFetchDetails(): Promise<void> {
         this.sha = await run('stg', ["id", "--", this.label]);
-        const tree = await run(
-            'git', ['diff-tree', '--no-commit-id', '-r', this.sha]);
+        const tree = await run('git', ['diff-tree',
+            ...RENAMEOPTS, '-z', '--no-commit-id', '-r', this.sha]);
         this.deltas = Delta.fromDiff(tree);
     }
     setMarked(marked: boolean) {
@@ -178,8 +215,9 @@ class WorkTree extends Patch {
         this.expanded = true;
     }
     protected async doFetchDetails(): Promise<void> {
-        await run('git', ["update-index", "-q", "--refresh"]);
-        const tree = await run('git', ["diff-files", "-0"]);
+        await run('git', ['update-index', '-q', '--refresh']);
+        const tree = await run(
+            'git', ['diff-files', ...RENAMEOPTS, '-z', '-0']);
         this.deltas = Delta.fromDiff(tree);
     }
 }
@@ -190,7 +228,8 @@ class Index extends Patch {
         this.expanded = true;
     }
     protected async doFetchDetails(): Promise<void> {
-        const tree = await run('git', ["diff-index", "--cached", "HEAD"]);
+        const tree = await run(
+            'git', ['diff-index', ...RENAMEOPTS, '-z', '--cached', 'HEAD']);
         const deltas = Delta.fromDiff(tree);
 
         // Fetch information about index stages
@@ -224,8 +263,8 @@ class History extends Patch {
         this.sha = sha;
     }
     protected async doFetchDetails(): Promise<void> {
-        const tree = await run(
-            'git', ['diff-tree', '--no-commit-id', '-r', this.sha]);
+        const tree = await run('git', ['diff-tree',
+            ...RENAMEOPTS, '-z', '--no-commit-id', '-r', this.sha]);
         this.deltas = Delta.fromDiff(tree);
     }
     static async fromRev(rev: string, limit: number) {
