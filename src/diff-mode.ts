@@ -181,7 +181,11 @@ class Hunk {
     }
 
     locate(doc: vscode.TextDocument) {
-        for (const t of [this.fromText, this.toText]) {
+        // Delay matching an empty text, since this will always succeed. This
+        // case occurs when text is added to an empty file.
+        const texts = (this.toText.text.length) ? [this.toText, this.fromText]
+            : [this.fromText, this.toText];
+        for (const t of texts) {
             const line = t.findInDoc(doc);
             if (line >= 0)
                 return {text: t, line: line};
