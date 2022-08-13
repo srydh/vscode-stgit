@@ -37,6 +37,7 @@ export function activate(context: vscode.ExtensionContext) {
     registerDiffProvider(context);
     registerDiffMode(context);
     registerStGitMode(context);
+    log("StGit extension activated");
 }
 
 export function deactivate() {
