@@ -277,6 +277,7 @@ class Stgit {
         private commentController: vscode.CommentController,
     ) {
         this.reload();
+        this.openInitialEditor();
     }
     dispose() {
         /* nothing */
@@ -875,26 +876,38 @@ class Stgit {
             this.editor.selection = new vscode.Selection(pos, pos);
         }
     }
-    async moveCursorToIndexAtOpen() {
-        const editor = this.editor;
-        if (editor) {
-            let done = false;
-            const watcher = workspace.onDidChangeTextDocument((e) => {
-                if (e.document !== this.doc || done)
-                    return;
-                const line = this.index.lineNum;
-                if (line !== 0) {
-                    const p = new vscode.Position(line, 0);
-                    editor.selection = new vscode.Selection(p, p);
-                    editor.revealRange(new vscode.Range(p, p));
-                    done = true;
-                    return;
-                }
-            });
-            await sleep(4000);
-            watcher.dispose();
-        }
+
+    private async openInitialEditor() {
+        const editor = await window.showTextDocument(this.doc, {
+            viewColumn: this.mainViewColumn,
+            preview: false,
+        });
+        const opts = editor.options;
+        opts.lineNumbers = vscode.TextEditorLineNumbersStyle.Off;
+        opts.cursorStyle = vscode.TextEditorCursorStyle.Block;
+
+        // move cursor to Index
+        this.moveCursorToIndexAtOpen(editor);
     }
+
+    private async moveCursorToIndexAtOpen(editor: vscode.TextEditor) {
+        let done = false;
+        const watcher = workspace.onDidChangeTextDocument((e) => {
+            if (e.document !== this.doc || done)
+                return;
+            const line = this.index.lineNum;
+            if (line !== 0) {
+                const p = new vscode.Position(line, 0);
+                editor.selection = new vscode.Selection(p, p);
+                editor.revealRange(new vscode.Range(p, p));
+                done = true;
+                return;
+            }
+        });
+        await sleep(4000);
+        watcher.dispose();
+    }
+
     get editor(): vscode.TextEditor | null {
         const active = window.activeTextEditor;
         if (active?.document === this.doc) {
@@ -1064,14 +1077,6 @@ class StgitExtension {
             this.stgit = new Stgit(doc,
                 () => this.changeEmitter.fire(doc.uri),
                 this.commentController);
-            const editor = await window.showTextDocument(doc, {
-                viewColumn: this.stgit.mainViewColumn,
-                preview: false,
-            });
-            const opts = editor.options;
-            opts.lineNumbers = vscode.TextEditorLineNumbersStyle.Off;
-            opts.cursorStyle = vscode.TextEditorCursorStyle.Block;
-            this.stgit.moveCursorToIndexAtOpen();
         }
     }
     private get uri() {
