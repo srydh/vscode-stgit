@@ -7,6 +7,7 @@ import { openAndShowDiffDocument, refreshDiff } from './diff-provider';
 import { run, runAndReportErrors, runCommand } from './util';
 import { log, info } from './extension';
 import { uncommitFiles } from './git';
+import { RepositoryInfo } from './repo';
 
 interface IndexStageInfo {
     perm: string;
@@ -273,6 +274,7 @@ class StGitDoc {
 
     constructor(
         public doc: vscode.TextDocument,
+        public repo: RepositoryInfo,
         public notifyDirty: () => void,
         private commentController: vscode.CommentController,
     ) {
@@ -628,7 +630,7 @@ class StGitDoc {
                 preview: true,
             };
             if (this.workTree.deltas.includes(delta)) {
-                dstUri = vscode.Uri.joinPath(this.repoUri, delta.path);
+                dstUri = this.repo.getPathUri(delta.path);
             }
             vscode.commands.executeCommand("vscode.diff",
                 srcUri, dstUri, `Diff ${delta.path}`, opts);
@@ -748,7 +750,9 @@ class StGitDoc {
         const patch = this.curPatch;
         const delta = this.curChange;
         if (delta) {
-            const uri = vscode.Uri.joinPath(this.repoUri, delta.path);
+            const uri = this.repo.getPathUri(delta.path);
+            if (!uri)
+                return;
             const doc = await workspace.openTextDocument(uri);
             if (doc)
                 window.showTextDocument(doc, {
@@ -956,10 +960,6 @@ class StGitDoc {
         const col = this.mainViewColumn;
         return (col > 1) ? col - 1 : col + 1;
     }
-    private get repoUri(): vscode.Uri {
-        const d = workspace.workspaceFolders?.[0]?.uri;
-        return d ? d : vscode.Uri.parse("unknown://repo/path");
-    }
 
     get documentContents(): string {
         const b = this.branchName ?? this.baseSha?.slice(0, 16) ?? "<unknown>";
@@ -1074,8 +1074,13 @@ class StGitMode {
             this.stgit.focusWindow();
             this.stgit.reload();
         } else {
+            const repo = await RepositoryInfo.lookup();
+            if (!repo) {
+                info("Failed to find a GIT repository");
+                return;
+            }
             const doc = await workspace.openTextDocument(this.uri);
-            this.stgit = new StGitDoc(doc,
+            this.stgit = new StGitDoc(doc, repo,
                 () => this.changeEmitter.fire(doc.uri),
                 this.commentController);
         }

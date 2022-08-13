@@ -8,6 +8,7 @@ import { info } from './extension';
 import { reloadIndexAndWorkTree } from './stgit';
 import { isUnmerged, updateIndex } from './git';
 import { runCommand } from './util';
+import { RepositoryInfo } from './repo';
 
 function locateLineInDoc(doc: vscode.TextDocument, needle: string,
         metric: (number: number) => number): number | null {
@@ -396,10 +397,10 @@ class DiffMode {
     }
     async getSourceDoc(hunk: Hunk | null): Promise<vscode.TextDocument | null> {
         const header = this.getHeader(hunk);
-        if (!header)
+        const repo = await RepositoryInfo.lookup();
+        if (!header || !repo)
             return null;
-        const uri = vscode.Uri.joinPath(this.repoUri, header.toPath);
-        return workspace.openTextDocument(uri);
+        return workspace.openTextDocument(repo.getPathUri(header.toPath));
     }
     private findHunk(doc: vscode.TextDocument, line: number) {
         for (let i = line; i >= 0; i--) {
@@ -432,10 +433,6 @@ class DiffMode {
             return DiffHeader.fromLine(editor.document, line);
         }
         return null;
-    }
-    private get repoUri(): vscode.Uri {
-        const d = workspace.workspaceFolders?.[0]?.uri;
-        return d ? d : vscode.Uri.parse("unknown://repo/path");
     }
 }
 

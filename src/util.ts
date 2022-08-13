@@ -5,9 +5,9 @@ import * as os from 'os';
 import * as fs from 'fs';
 import * as fs_prom from 'fs/promises';
 import * as path from 'path';
-import { workspace } from 'vscode';
 import { spawn } from 'child_process';
 import { log, info } from './extension';
+import { RepositoryInfo } from './repo';
 
 interface RunOpts {
     trim?: boolean,
@@ -26,7 +26,7 @@ interface RunOpts {
 export async function runCommand(
     command: string, args: string[], opts?: RunOpts
 ): Promise<{stdout: string, stderr: string, ecode: number}> {
-    const cwd = opts?.cwd ?? workspace.workspaceFolders?.[0].uri.path;
+    const cwd = opts?.cwd ?? (await RepositoryInfo.lookup())?.topLevelDir;
     if (!cwd)
         return {stdout: "", stderr: "", ecode: -1};
     const env = opts?.env ? {...process.env, ...opts.env} : undefined;

@@ -2,6 +2,7 @@
 // This code is licensed under the BSD 2-Clause license.
 
 import { log } from "./extension";
+import { RepositoryInfo } from "./repo";
 import { run, runCommand, withTempDir } from "./util";
 
 export async function isUnmerged(path: string) {
@@ -39,6 +40,9 @@ export async function updateIndex(
 }
 
 export async function uncommitFiles(files?: string[]) {
+    const repo = await RepositoryInfo.lookup();
+    if (!repo)
+        return;
     const index = await run('git', ['write-tree']);
     if (index === '')
         return;
@@ -50,11 +54,10 @@ export async function uncommitFiles(files?: string[]) {
 
     // Workaround a problem where stgit refuses to refresh from the index if
     // a file is deleted in the index but present in the work tree.
-    const gitDir = await run('git', ['rev-parse', '--absolute-git-dir']);
     await withTempDir(async (tempDir) => {
         const env = {
             GIT_WORK_TREE: tempDir,
-            GIT_DIR: gitDir,
+            GIT_DIR: repo.gitDir,
         };
         await runCommand('stg', ['refresh', '-i'], {env});
     });
