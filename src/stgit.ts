@@ -481,9 +481,10 @@ class StGitDoc {
             return;
         }
         if ([this.index, this.workTree].includes(p)) {
-            await run('stg', ['float', '--', ...patches]);
+            await runAndReportErrors('stg', ['float', '--', ...patches]);
         } else if (this.applied.includes(p)) {
-            await run('stg', ['sink', '-t', p.label, '--', ...patches]);
+            await runAndReportErrors(
+                'stg', ['sink', '-t', p.label, '--', ...patches]);
         }
         this.reload();
     }
