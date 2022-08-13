@@ -4,7 +4,8 @@
 import * as vscode from 'vscode';
 import { workspace, commands, window } from 'vscode';
 import { openAndShowDiffDocument, refreshDiff } from './diff-provider';
-import { info, reloadIndexAndWorkTree } from './extension';
+import { info } from './extension';
+import { reloadIndexAndWorkTree } from './stgit';
 import { isUnmerged, updateIndex } from './git';
 import { runCommand } from './util';
 
