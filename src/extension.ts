@@ -269,19 +269,37 @@ class Stgit {
     // Patch being edited in editor
     private editPatch: Patch | null = null;
 
-    mainViewColumn = window.tabGroups.all.length;
+    private mainViewColumn = window.tabGroups.all.length;
+
+    private subscriptions: vscode.Disposable[] = [];
 
     constructor(
         public doc: vscode.TextDocument,
         public notifyDirty: () => void,
         private commentController: vscode.CommentController,
     ) {
+        this.subscriptions.push(
+            window.onDidChangeVisibleTextEditors(editors => {
+                for (const e of editors) {
+                    if (e.document === this.doc && e.viewColumn) {
+                        this.mainViewColumn = e.viewColumn;
+                        break;
+                    }
+                }
+            }),
+            // this event fires when an entire tab group is added or removed
+            window.onDidChangeTextEditorViewColumn(ev => {
+                if (ev.textEditor.document === this.doc)
+                    this.mainViewColumn = ev.viewColumn;
+            }),
+        );
         this.reload();
         this.openInitialEditor();
     }
     dispose() {
-        /* nothing */
+        this.subscriptions.forEach(s => s.dispose());
     }
+
     private get patches() {
         return [...this.history, ...this.applied,
             this.index, this.workTree, ...this.popped];
@@ -1034,21 +1052,6 @@ class StgitExtension {
 
             workspace.registerTextDocumentContentProvider('stgit', provider),
 
-            window.onDidChangeVisibleTextEditors(editors => {
-                if (this.stgit) {
-                    for (const e of editors) {
-                        if (e.document === this.stgit?.doc && e.viewColumn) {
-                            this.stgit.mainViewColumn = e.viewColumn;
-                            break;
-                        }
-                    }
-                }
-            }),
-            // this event fires when an entire tab group is added or removed
-            window.onDidChangeTextEditorViewColumn(ev => {
-                if (ev.textEditor.document === this.stgit?.doc)
-                    this.stgit.mainViewColumn = ev.viewColumn;
-            }),
             workspace.onDidCloseTextDocument((doc) => {
                 if (doc === this.stgit?.doc) {
                     this.stgit.dispose();
