@@ -52,15 +52,22 @@ export async function uncommitFiles(files?: string[]) {
     else
         await run('git', ['read-tree', 'HEAD^']);
 
-    // Workaround a problem where stgit refuses to refresh from the index if
-    // a file is deleted in the index but present in the work tree.
-    await withTempDir(async (tempDir) => {
-        const env = {
-            GIT_WORK_TREE: tempDir,
-            GIT_DIR: repo.gitDir,
-        };
-        await runCommand('stg', ['refresh', '-i'], {env});
-    });
+    const version = await getStGitVersion();
+    if (version?.startsWith("1")) {
+        // Workaround a problem in StGit 1.x where the refresh fails
+        // when a file is deleted in the index but present in the work tree.
+        await withTempDir(async (tempDir) => {
+            const env = {
+                GIT_WORK_TREE: tempDir,
+                GIT_DIR: repo.gitDir,
+            };
+            await runCommand('stg', ['refresh', '-i'], {env});
+        });
+    } else {
+        // StGit 2.0+ does not have the issue above. The code above does
+        // not work with 2.0+ since GIT_WORK_TREE is unsupported.
+        await runCommand('stg', ['refresh', '-i']);
+    }
     await run('git', ['read-tree', index]);
 }
 
