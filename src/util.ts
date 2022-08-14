@@ -9,11 +9,19 @@ import { spawn } from 'child_process';
 import { log, info } from './extension';
 import { RepositoryInfo } from './repo';
 
+type Command = "stg" | "git";
+
 interface RunOpts {
     trim?: boolean,
     env?: {[key: string]: string},
     cwd?: string,
     stdin?: string,
+}
+
+interface CommandResult {
+    stdout: string,
+    stderr: string,
+    ecode: number,
 }
 
 /**
@@ -24,8 +32,8 @@ interface RunOpts {
  * @returns process output and error code (-1 if the spawn failed)
  */
 export async function runCommand(
-    command: string, args: string[], opts?: RunOpts
-): Promise<{stdout: string, stderr: string, ecode: number}> {
+    command: Command, args: string[], opts?: RunOpts
+): Promise<CommandResult> {
     const cwd = opts?.cwd ?? (await RepositoryInfo.lookup())?.topLevelDir;
     if (!cwd)
         return {stdout: "", stderr: "", ecode: -1};
@@ -65,15 +73,15 @@ export async function runCommand(
  * output.
  * @returns captured output or an empty string if process spawn failed
  */
-export async function run(command: string, args: string[], opts?: RunOpts) {
+export async function run(
+        command: Command, args: string[], opts?: RunOpts
+): Promise<string> {
     return (await runCommand(command, args, opts)).stdout;
 }
 
 export async function runAndReportErrors(
-    command: string,
-    args: string[],
-    opts?: RunOpts
-) {
+    command: Command, args: string[], opts?: RunOpts
+): Promise<CommandResult> {
     const result = await runCommand(command, args, opts);
     if (result.ecode) {
         const m = result.stderr.split("\n").filter(
