@@ -410,7 +410,6 @@
     },
     "scripts": {
         "vscode:prepublish": "npm run compile",
-        "compile-grammar": "npx js-yaml syntaxes/stgit.tmLanguage.yaml > syntaxes/stgit.tmLanguage.json",
         "compile": "tsc -p ./",
         "watch": "tsc -watch -p ./",
         "pretest": "npm run compile && npm run lint",
