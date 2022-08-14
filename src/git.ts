@@ -73,7 +73,9 @@ export async function uncommitFiles(files?: string[]) {
 
 let stgVersionGetter: Promise<string | null> | null = null;
 
-export function getStGitVersion(): Promise<string | null> {
+export function getStGitVersion(
+    opts?: { forceRefresh?: boolean }
+): Promise<string | null> {
     async function getter(): Promise<string> {
         const result = await run('stg', ['version', '-s']);
         for (const s of result.split("\n")) {
@@ -84,7 +86,7 @@ export function getStGitVersion(): Promise<string | null> {
         }
         return "";
     }
-    if (!stgVersionGetter)
+    if (!stgVersionGetter || opts?.forceRefresh)
         stgVersionGetter = getter();
     return stgVersionGetter;
 }

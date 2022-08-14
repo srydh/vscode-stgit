@@ -20,6 +20,28 @@
     },
     "publisher": "samuelrydh",
     "contributes": {
+        "configuration": {
+            "title": "StGit",
+            "properties": {
+                "stgit.showUnknownFiles": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Show unknown files in the StGit window. Note: this setting is the startup default; the visibility of unknown files can be toggled dynamically.",
+                    "order": 1
+                },
+                "stgit.stgitExecutable": {
+                    "type": "string",
+                    "default": "stg",
+                    "description": "Path to StGit binary (stg)",
+                    "order": 1
+                },
+                "stgit.gitExecutable": {
+                    "type": "string",
+                    "default": "git",
+                    "description": "Path to Git binary (git)"
+                }
+            }
+        },
         "menus": {
             "comments/comment/context": [{
                 "command": "stgit.commentCreatePatch",

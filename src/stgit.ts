@@ -8,6 +8,7 @@ import { run, runAndReportErrors, runCommand } from './util';
 import { log, info } from './extension';
 import { uncommitFiles } from './git';
 import { RepositoryInfo } from './repo';
+import { getStGitConfig } from './config';
 
 const RENAMEOPTS: readonly string[] = ['--no-renames'];
 
@@ -349,7 +350,11 @@ class StGitDoc {
                 if (ev.textEditor.document === this.doc)
                     this.mainViewColumn = ev.viewColumn;
             }),
+            getStGitConfig().onDidChangeConfiguration(() => {
+                this.updateConfiguration({reload: true});
+            })
         );
+        this.updateConfiguration({reload: false});
         this.reload();
         this.openInitialEditor();
     }
@@ -360,6 +365,12 @@ class StGitDoc {
     private get patches() {
         return [...this.history, ...this.applied,
             this.index, this.workTree, ...this.popped];
+    }
+    private updateConfiguration(opt: {reload: boolean}) {
+        const config = getStGitConfig();
+        this.displayingUnknownFiles = config.showUnknownFiles;
+        if (opt.reload)
+            this.reload();
     }
 
     async reloadIndex() {

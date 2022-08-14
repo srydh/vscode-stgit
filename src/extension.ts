@@ -3,6 +3,7 @@
 
 import * as vscode from 'vscode';
 import { window } from 'vscode';
+import { registerStGitConfig } from './config';
 import { registerDiffMode } from './diff-mode';
 import { registerDiffProvider } from './diff-provider';
 import { getStGitVersion } from './git';
@@ -35,15 +36,11 @@ export function info(msg: string) {
 
 export function activate(context: vscode.ExtensionContext) {
     StgitExtension.instance = new StgitExtension(context);
+    registerStGitConfig(context);
     registerDiffProvider(context);
     registerDiffMode(context);
     registerStGitMode(context);
     log("StGit extension activated");
-    async function reportStgVersion() {
-        const version = await getStGitVersion();
-        log(`StGit version: ${version}`);
-    }
-    reportStgVersion();
 }
 
 export function deactivate() {

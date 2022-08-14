@@ -8,6 +8,7 @@ import * as path from 'path';
 import { spawn } from 'child_process';
 import { log, info } from './extension';
 import { RepositoryInfo } from './repo';
+import { getStGitConfig } from './config';
 
 type Command = "stg" | "git";
 
@@ -34,12 +35,21 @@ interface CommandResult {
 export async function runCommand(
     command: Command, args: string[], opts?: RunOpts
 ): Promise<CommandResult> {
+    let cmd: string;
+    const config = getStGitConfig();
+    if (command === 'git')
+        cmd = config.gitExecutable;
+    else if (command === 'stg')
+        cmd = config.stgitExecutable;
+    else
+        throw new Error("Unexpected command");
+
     const cwd = opts?.cwd ?? (await RepositoryInfo.lookup())?.topLevelDir;
     if (!cwd)
         return {stdout: "", stderr: "", ecode: -1};
     const env = opts?.env ? {...process.env, ...opts.env} : undefined;
     const stdinPipe = opts?.stdin ? 'pipe' : 'ignore';
-    const proc = spawn(command, args, {
+    const proc = spawn(cmd, args, {
         cwd: cwd,
         env: env,
         stdio: [stdinPipe, 'pipe', 'pipe']
