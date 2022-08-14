@@ -63,3 +63,21 @@ export async function uncommitFiles(files?: string[]) {
     });
     await run('git', ['read-tree', index]);
 }
+
+let stgVersionGetter: Promise<string | null> | null = null;
+
+export function getStGitVersion(): Promise<string | null> {
+    async function getter(): Promise<string> {
+        const result = await run('stg', ['version', '-s']);
+        for (const s of result.split("\n")) {
+            if (s.startsWith('Stacked Git '))
+                return s.split('\n')[0].replace('Stacked Git ', '').trim();
+            if (s.startsWith('stg '))
+                return s.replace("stg ", '').trim();
+        }
+        return "";
+    }
+    if (!stgVersionGetter)
+        stgVersionGetter = getter();
+    return stgVersionGetter;
+}
