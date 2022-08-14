@@ -18,6 +18,7 @@
     "repository": {
         "url": "https://github.com/srydh/vscode-stgit"
     },
+    "publisher": "samuelrydh",
     "contributes": {
         "menus": {
             "comments/comment/context": [{
