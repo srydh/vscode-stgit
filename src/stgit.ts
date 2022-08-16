@@ -212,13 +212,13 @@ class StGitPatch extends Patch {
 
 class WorkTree extends Patch {
     constructor(
-        private readonly displayingUnknownFiles: boolean,
+        private readonly unknownFilesVisible: boolean,
     ) {
         super("Work Tree", "", 'W', false);
         this.expanded = true;
     }
     private async fetchUnknownFiles(): Promise<string> {
-        if (!this.displayingUnknownFiles)
+        if (!this.unknownFilesVisible)
             return "";
         const unknownFiles = await run(
             'git', ['ls-files', '--exclude-standard', '-o', '-z']);
@@ -304,13 +304,13 @@ function sleep(ms: number) {
 }
 
 class StGitDoc {
-    private displayingUnknownFiles = false;
+    private unknownFilesVisible = false;
 
     private history: Patch[] = [];
     private applied: Patch[] = [];
     private popped: Patch[] = [];
     private index: Patch = new Index();
-    private workTree: Patch = new WorkTree(this.displayingUnknownFiles);
+    private workTree: Patch = new WorkTree(this.unknownFilesVisible);
     private needRepair = false;
     private stgMissing = false;
     private branchInitialized = true;
@@ -368,7 +368,7 @@ class StGitDoc {
     }
     private updateConfiguration(opt: {reload: boolean}) {
         const config = getStGitConfig();
-        this.displayingUnknownFiles = config.showUnknownFiles;
+        this.unknownFilesVisible = config.showUnknownFiles;
         if (opt.reload)
             this.reload();
     }
@@ -381,7 +381,7 @@ class StGitDoc {
         this.notifyDirty();
     }
     async reloadWorkTree() {
-        const workTree = new WorkTree(this.displayingUnknownFiles);
+        const workTree = new WorkTree(this.unknownFilesVisible);
         await workTree.updateFromOld(this.workTree);
         await workTree.fetchDetails();
         this.workTree = workTree;
@@ -950,7 +950,7 @@ class StGitDoc {
         this.fetchHistory(this.historySize);
     }
     toggleShowingUnknownFiles() {
-        this.displayingUnknownFiles = !this.displayingUnknownFiles;
+        this.unknownFilesVisible = !this.unknownFilesVisible;
         this.reloadWorkTree();
     }
 
