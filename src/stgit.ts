@@ -71,9 +71,10 @@ class Delta {
         return `(stage ${m})`;
     }
     private get permissionDelta(): string {
-        if (this.srcMode !== "100755" && this.destMode === "100755")
+        const [sMode, dMode] = [this.srcMode, this.destMode];
+        if (this.status !== 'U' && sMode !== '100755' && dMode === '100755')
             return " +x";
-        else if (this.srcMode === "100755" && this.destMode === "100644")
+        else if (sMode === '100755' && dMode === '100644')
             return " -x";
         return "";
     }
