@@ -595,19 +595,12 @@ class StGitDoc {
     }
     async editCommitMessage() {
         const p = this.curPatch;
-        if (!p || [this.index, this.workTree].includes(p))
+        if (!p || !['+', '-'].includes(p.kind))
             return;
         this.editPatch = p;
-        const template = await run(
-            'stg', ['edit', '--save-template', '-', '--', p.label]);
-        const simplified = template.split("\n").filter((s) => {
-            for (const x of ['#', 'Patch:', 'Date:', 'From:']) {
-                if (s.startsWith(x))
-                    return false;
-            }
-            return true;
-        }).join("\n").trim();
-        this.openCommentEditor(p.lineNum, simplified, "stgit-edit");
+        const sha = await p.getSha() ?? "error retrieving commit message>";
+        const msg = await run('git', ['show', '-s', sha, '--format=%B']);
+        this.openCommentEditor(p.lineNum, msg, "stgit-edit");
     }
     async commentCreatePatch() {
         if (this.commentThread) {
