@@ -6,7 +6,6 @@ import { window } from 'vscode';
 import { registerStGitConfig } from './config';
 import { registerDiffMode } from './diff-mode';
 import { registerDiffProvider } from './diff-provider';
-import { getStGitVersion } from './git';
 import { registerStGitMode } from './stgit';
 
 class StgitExtension {

@@ -1063,7 +1063,7 @@ class StGitMode {
     private commentController = vscode.comments.createCommentController(
         'stgit.comments', "StGit");
 
-    public stgit: StGitDoc | null = null;
+    stgit: StGitDoc | null = null;
 
     constructor(context: vscode.ExtensionContext) {
         const provider: vscode.TextDocumentContentProvider = {
