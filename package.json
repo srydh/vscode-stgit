@@ -391,39 +391,39 @@
         }, {
             "key": "h",
             "command": "sdiff.help",
-            "when": "resourceScheme == stgit-diff"
+            "when": "resourceScheme == stgit-diff && editorTextFocus"
         }, {
             "key": "p",
             "command": "sdiff.gotoPreviousHunk",
-            "when": "resourceScheme == stgit-diff"
+            "when": "resourceScheme == stgit-diff && editorTextFocus"
         }, {
             "key": "n",
             "command": "sdiff.gotoNextHunk",
-            "when": "resourceScheme == stgit-diff"
+            "when": "resourceScheme == stgit-diff && editorTextFocus"
         }, {
             "key": "ctrl-c ctrl-a",
             "command": "sdiff.applyHunk",
-            "when": "resourceScheme == stgit-diff"
+            "when": "resourceScheme == stgit-diff && editorTextFocus"
         }, {
             "key": "ctrl-c ctrl-u",
             "command": "sdiff.revertHunk",
-            "when": "resourceScheme == stgit-diff"
+            "when": "resourceScheme == stgit-diff && editorTextFocus"
         }, {
             "key": "s",
             "command": "sdiff.stageHunk",
-            "when": "resourceScheme == stgit-diff"
+            "when": "resourceScheme == stgit-diff && editorTextFocus"
         }, {
             "key": "u",
             "command": "sdiff.unstageHunk",
-            "when": "resourceScheme == stgit-diff"
+            "when": "resourceScheme == stgit-diff && editorTextFocus"
         }, {
             "key": "enter",
             "command": "sdiff.openFile",
-            "when": "resourceScheme == stgit-diff"
+            "when": "resourceScheme == stgit-diff && editorTextFocus"
         }, {
             "key": "ctrl-c ctrl-s",
             "command": "sdiff.splitHunk",
-            "when": "resourceScheme == stgit-diff"
+            "when": "resourceScheme == stgit-diff && editorTextFocus"
         }, {
             "key": "ctrl-x =",
             "command": "sdiff.openCurrentFileDiff",
