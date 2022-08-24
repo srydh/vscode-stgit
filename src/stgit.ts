@@ -4,7 +4,7 @@
 import * as vscode from 'vscode';
 import { workspace, window, commands } from 'vscode';
 import { openAndShowDiffDocument, refreshDiff } from './diff-provider';
-import { run, runAndReportErrors, runCommand } from './util';
+import { run, runAndReportErrors, runCommand, sleep } from './util';
 import { log, info } from './extension';
 import { uncommitFiles } from './git';
 import { RepositoryInfo } from './repo';
@@ -298,10 +298,6 @@ class History extends Patch {
             return new History(sha, desc);
         });
     }
-}
-
-function sleep(ms: number) {
-    return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 class StGitDoc {

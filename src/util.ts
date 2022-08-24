@@ -118,3 +118,7 @@ export async function withTempDir<X>(
         fs.rm(tempDir, {recursive: true, force: true}, (err) => {/**/});
     }
 }
+
+export function sleep(ms: number) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
