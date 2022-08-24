@@ -118,7 +118,7 @@ class Delta {
     }
 }
 
-class Patch {
+abstract class Patch {
     protected expanded = false;
     marked = false;
     deltas: Delta[] = [];
@@ -158,8 +158,15 @@ class Patch {
             }
         }
     }
-    protected async doFetchDetails(): Promise<void> { /* virtual */ }
-    setMarked(marked: boolean): boolean { return false; }
+    protected abstract doFetchDetails(): Promise<void>;
+
+    setMarked(marked: boolean): boolean {
+        if (this.kind !== '+' && this.kind !== '-')
+            return false;
+        const changed = this.marked !== marked;
+        this.marked = marked;
+        return changed;
+    }
 
     fetchDetails(): Promise<void> {
         if (!this.detailsFetcher)
@@ -203,11 +210,6 @@ class StGitPatch extends Patch {
         const tree = await run('git', ['diff-tree',
             ...RENAMEOPTS, '-z', '--no-commit-id', '-r', this.sha]);
         this.deltas = Delta.fromDiff(tree);
-    }
-    setMarked(marked: boolean) {
-        const changed = this.marked !== marked;
-        this.marked = marked;
-        return changed;
     }
 }
 
