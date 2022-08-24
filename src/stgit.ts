@@ -122,7 +122,6 @@ abstract class Patch {
     protected expanded = false;
     marked = false;
     deltas: Delta[] = [];
-    private hasDetails = false;
     protected sha: string | null = null;
     private detailsFetcher: Promise<void> | null = null;
     private commitMessage: string | null = null;
@@ -149,8 +148,6 @@ abstract class Patch {
         const empty = this.empty ? "(empty) " : "";
         this.lines = [`${this.symbol}${m}${empty}${this.description}`];
         if (this.expanded) {
-            if (!this.hasDetails)
-                this.fetchDetails();
             for (const d of this.deltas)
                 this.lines.push(d.docLine);
             if (!this.deltas.length) {
