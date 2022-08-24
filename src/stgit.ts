@@ -391,7 +391,6 @@ class StGitDoc {
     async reloadPatches() {
         const m = new Map(this.patches.map(p => [p.label, p]));
         const patches = [];
-        const work = [];
 
         const result = await runCommand(
             'stg', ['series', '-ae', '--description']);
@@ -402,6 +401,7 @@ class StGitDoc {
         if (this.stgMissing) {
             this.warnAboutMissingStGit();
         } else if (this.branchInitialized) {
+            const work: Promise<void>[] = [];
             for (const line of result.stdout.split("\n")) {
                 if (line) {
                     const p = StGitPatch.fromSeries(line);
@@ -411,8 +411,7 @@ class StGitDoc {
                     patches.push(p);
                 }
             }
-            for (const w of work)
-                await w;
+            await Promise.all(work);
         }
         this.popped = patches.filter(p => p.kind === '-');
         this.applied = patches.filter(p => p.kind !== '-');
