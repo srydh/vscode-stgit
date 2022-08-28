@@ -145,6 +145,14 @@
             "category": "StGit",
             "title": "Switch Branch"
         }, {
+            "command": "stgit.highlightFile",
+            "category": "StGit",
+            "title": "Highlight Patches Modifying File"
+        }, {
+            "command": "stgit.cancelHighlighting",
+            "category": "StGit",
+            "title": "Cancel Patch Highlighting"
+        }, {
             "command": "stgit.gotoPatch",
             "category": "StGit",
             "title": "Goto Patch"
@@ -292,6 +300,14 @@
         }, {
             "key": "shift+b",
             "command": "stgit.switchBranch",
+            "when": "resourceScheme == stgit && editorTextFocus"
+        }, {
+            "key": "f",
+            "command": "stgit.highlightFile",
+            "when": "resourceScheme == stgit && editorTextFocus"
+        }, {
+            "key": "shift+f",
+            "command": "stgit.cancelHighlighting",
             "when": "resourceScheme == stgit && editorTextFocus"
         }, {
             "key": "u",

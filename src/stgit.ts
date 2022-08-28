@@ -326,6 +326,9 @@ class StGitDoc {
 
     private subscriptions: vscode.Disposable[] = [];
 
+    private highlightRanges: vscode.Range[] = [];
+    private historyRanges: vscode.Range[] = [];
+
     constructor(
         public doc: vscode.TextDocument,
         public repo: RepositoryInfo,
@@ -334,12 +337,17 @@ class StGitDoc {
     ) {
         this.subscriptions.push(
             window.onDidChangeVisibleTextEditors(editors => {
+                this.updateEditorDecorations();
                 for (const e of editors) {
                     if (e.document === this.doc && e.viewColumn) {
                         this.mainViewColumn = e.viewColumn;
                         break;
                     }
                 }
+            }),
+            workspace.onDidChangeTextDocument(ev => {
+                if (ev.document === this.doc)
+                    this.updateEditorDecorations();
             }),
             // this event fires when an entire tab group is added or removed
             window.onDidChangeTextEditorViewColumn(ev => {
@@ -404,6 +412,8 @@ class StGitDoc {
                     if (old)
                         work.push(p.updateFromOld(old));
                     patches.push(p);
+                    if (this.highlightPaths)
+                        work.push(p.fetchDetails());
                 }
             }
             await Promise.all(work);
@@ -674,6 +684,25 @@ class StGitDoc {
             await run('stg', ['delete', patch.label]);
             this.reload();
         }
+    }
+    private highlightPaths: Set<string> | null = null;
+    async highlightFile() {
+        const patch = this.curPatch;
+        const delta = this.curChange;
+        const work = this.applied.map(p => p.fetchDetails());
+        await Promise.all(work);
+        if (delta) {
+            this.highlightPaths = new Set([delta.path]);
+        } else if (patch) {
+            this.highlightPaths = new Set(patch.deltas.map(x => x.path));
+        } else {
+            this.highlightPaths = null;
+        }
+        this.notifyDirty();
+    }
+    cancelHighlighting() {
+        this.highlightPaths = null;
+        this.notifyDirty();
     }
     async openDiffEditor() {
         const delta = this.curChange;
@@ -992,6 +1021,28 @@ class StGitDoc {
         watcher.dispose();
     }
 
+    private updateDecorations() {
+        this.highlightRanges = this.applied.filter(p =>
+            p.deltas.some(d => this.highlightPaths?.has(d.path))).map(
+                p => new vscode.Range(p.lineNum, 2, p.lineNum, 2));
+        this.historyRanges = this.history.map(
+            p => new vscode.Range(p.lineNum, 0, p.lineNum, 999));
+        this.updateEditorDecorations();
+    }
+
+    private updateEditorDecorations() {
+        for (const editor of window.visibleTextEditors) {
+            if (editor.document !== this.doc)
+                continue;
+
+            const cls = StGitMode.instance!;
+            editor.setDecorations(
+                cls.fileHighlightDecoration, this.highlightRanges);
+            editor.setDecorations(
+                cls.historyDecoration, this.historyRanges);
+        }
+    }
+
     get editor(): vscode.TextEditor | null {
         const active = window.activeTextEditor;
         if (active?.document === this.doc) {
@@ -1047,6 +1098,8 @@ class StGitDoc {
         pushVec([this.index]);
         pushVec([this.workTree]);
         pushVec(this.popped);
+
+        this.updateDecorations();
         return lines.join("\n") + "\n--\n";
     }
 }
@@ -1060,6 +1113,13 @@ class StGitMode {
 
     stgit: StGitDoc | null = null;
 
+    readonly fileHighlightDecoration = window.createTextEditorDecorationType({
+        before: { contentText: "⏹ ", },
+    });
+    readonly historyDecoration = window.createTextEditorDecorationType({
+        dark: { color: "#777", },
+        light: { color: "#999", },
+    });
     constructor(context: vscode.ExtensionContext) {
         const provider: vscode.TextDocumentContentProvider = {
             onDidChange: this.changeEmitter.event,
@@ -1103,6 +1163,8 @@ class StGitMode {
             cmd('editCommitMessage', () => this.stgit?.editCommitMessage()),
             cmd('squashPatches', () => this.stgit?.squashPatches()),
             cmd('deletePatches', () => this.stgit?.deletePatches()),
+            cmd('highlightFile', () => this.stgit?.highlightFile()),
+            cmd('cancelHighlighting', () => this.stgit?.cancelHighlighting()),
             cmd('openDiffEditor', () => this.stgit?.openDiffEditor()),
             cmd('showDiff', () => this.stgit?.showDiff()),
             cmd('openDiff', () => this.stgit?.openDiff()),
@@ -1134,6 +1196,9 @@ class StGitMode {
         this.commentController.dispose();
         this.changeEmitter.dispose();
         StGitMode.instance = null;
+
+        this.fileHighlightDecoration.dispose();
+        this.historyDecoration.dispose();
     }
     private async openStgit() {
         if (this.stgit) {
