@@ -8,3 +8,6 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 ### Added
 - Support for marking patches modifying the same files as specified file/patch
 - Initial implementation
+
+### Changed
+- The Git history is now given a gray colorization
