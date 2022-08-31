@@ -9,5 +9,8 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 - Support for marking patches modifying the same files as specified file/patch
 - Initial implementation
 
+### Fixed
+- Report when rebase operation is aborted
+
 ### Changed
 - The Git history is now given a gray colorization

@@ -820,7 +820,7 @@ class StGitDoc {
             placeHolder: "Select upstream branch for rebase"
         });
         if (base) {
-            await run('stg', ['rebase', '--', base]);
+            await runAndReportErrors('stg', ['rebase', '--', base]);
             this.reload();
         }
     }
