@@ -19,6 +19,7 @@
         "url": "https://github.com/srydh/vscode-stgit"
     },
     "publisher": "samuelrydh",
+    "icon": "images/icon.png",
     "contributes": {
         "configuration": {
             "title": "StGit",
