@@ -790,7 +790,7 @@ class StGitDoc {
             "workbench.action.quickOpen", ">StGit: ");
     }
     async newPatch() {
-        await run('stg', ['new', '-m', 'internal']);
+        await run('stg', ['new', '-m', 'New patch']);
         this.reload();
     }
     async switchBranch() {
