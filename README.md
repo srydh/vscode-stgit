@@ -9,7 +9,7 @@ Refer to the [StGit homepage](https://stacked-git.github.io/) for more details.
 
 This extension is heavily inspired from the corresponding Emacs mode for StGit. A text buffer displays patches and changes, and a multitute of operations are bound to various keys.
 
-![StGit](images/StGit.png)
+![StGit](images/example.png)
 
 > Hint: To enster StGit, press `Ctrl-C Ctrl-I` or run the "`StGit: Open...`"
 command. In the `stgit` buffer, press `h` to list all available StGit
