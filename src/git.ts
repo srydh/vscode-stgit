@@ -52,8 +52,7 @@ export async function uncommitFiles(files?: string[]) {
     else
         await run('git', ['read-tree', 'HEAD^']);
 
-    const version = await getStGitVersion();
-    if (version?.startsWith("1")) {
+    if (!await hasStGit2()) {
         // Workaround a problem in StGit 1.x where the refresh fails
         // when a file is deleted in the index but present in the work tree.
         await withTempDir(async (tempDir) => {
@@ -72,6 +71,11 @@ export async function uncommitFiles(files?: string[]) {
 }
 
 let stgVersionGetter: Promise<string | null> | null = null;
+
+export async function hasStGit2() {
+    const version = await getStGitVersion();
+    return version && !version?.startsWith("1");
+}
 
 export function getStGitVersion(
     opts?: { forceRefresh?: boolean }
