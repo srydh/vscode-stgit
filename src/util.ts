@@ -9,6 +9,7 @@ import { spawn } from 'child_process';
 import { log, info } from './extension';
 import { RepositoryInfo } from './repo';
 import { getStGitConfig } from './config';
+import { hasStGit2 } from './git';
 
 type Command = "stg" | "git";
 
@@ -93,14 +94,18 @@ export async function runAndReportErrors(
     command: Command, args: string[], opts?: RunOpts
 ): Promise<CommandResult> {
     const result = await runCommand(command, args, opts);
-    if (result.ecode) {
-        const m = result.stderr.split("\n").filter(
-            s => s.includes(':')).join("\n");
-        info(m || result.stderr);
+    if (result.ecode !== 0) {
+        if (await hasStGit2()) {
+            info(result.stderr);
+        } else {
+            // StGit 1.x uses stderr for all output; extract the actual error
+            const m = result.stderr.split("\n").filter(
+                s => s.includes(':')).join("\n");
+            info(m || result.stderr);
+        }
     }
     return result;
 }
-
 
 /**
  * Create a temporary directory and run calllback. The
