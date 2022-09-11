@@ -126,8 +126,10 @@ abstract class Patch {
     private detailsFetcher: Promise<void> | null = null;
     private commitMessage: string | null = null;
 
+    // Line number for this patch in the StGit window
     lineNum = 0;
-    lines: string[] = [];
+    // Number of lines displayed in the StGit window
+    lineCount = 0;
 
     constructor(
         public readonly description: string,
@@ -142,19 +144,24 @@ abstract class Patch {
         if (this.expanded !== old.expanded)
             await this.toggleExpanded();
     }
-    updateLines(lineNum: number) {
-        this.lineNum = lineNum;
+    getLines(): string[] {
         const m = this.marked ? '*' : ' ';
         const empty = this.empty ? "(empty) " : "";
-        this.lines = [`${this.symbol}${m}${empty}${this.description}`];
+        const lines = [`${this.symbol}${m}${empty}${this.description}`];
         if (this.expanded) {
             for (const d of this.deltas)
-                this.lines.push(d.docLine);
+                lines.push(d.docLine);
             if (!this.deltas.length) {
-                this.lines.push("    <no files>");
+                lines.push("    <no files>");
             }
         }
+        return lines;
     }
+    updateLineSpan(lineNum: number, lineCount: number) {
+        this.lineNum = lineNum;
+        this.lineCount = lineCount;
+    }
+
     protected abstract doFetchDetails(): Promise<void>;
 
     setMarked(marked: boolean): boolean {
@@ -1058,7 +1065,7 @@ class StGitDoc {
     private get curPatch(): Patch | null {
         const line = this.curLine;
         for (const p of this.patches) {
-            if (p.lineNum <= line && line < p.lineNum + p.lines.length)
+            if (p.lineNum <= line && line < p.lineNum + p.lineCount)
                 return p;
         }
         return null;
@@ -1066,7 +1073,7 @@ class StGitDoc {
     private get curChange(): Delta | null {
         const line = this.curLine;
         for (const p of this.patches) {
-            if (p.lineNum < line && line < p.lineNum + p.lines.length)
+            if (p.lineNum < line && line < p.lineNum + p.lineCount)
                 return p.deltas[line - p.lineNum - 1] ?? null;
         }
         return null;
@@ -1081,8 +1088,9 @@ class StGitDoc {
         const lines = [`Branch: ${b}`, ""];
         function pushVec(patches: Patch[]) {
             for (const p of patches) {
-                p.updateLines(lines.length);
-                lines.push(...p.lines);
+                const patchLines = p.getLines();
+                p.updateLineSpan(lines.length, patchLines.length);
+                lines.push(...patchLines);
             }
         }
         pushVec(this.history);
