@@ -396,7 +396,8 @@
             "when": "resourceScheme == stgit && editorTextFocus"
         }, {
             "key": "ctrl+c ctrl+i",
-            "command": "stgit.open"
+            "command": "stgit.open",
+            "when": "!terminalFocus"
         }, {
             "key": "ctrl+c ctrl+c",
             "command": "workbench.action.submitComment",
