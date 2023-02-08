@@ -261,139 +261,139 @@
         "keybindings": [{
             "key": "r",
             "command": "stgit.refresh",
-            "when": "resourceScheme == stgit && editorTextFocus"
+            "when": "resourceScheme == stgit && editorTextFocus && !commentEditorFocused"
         }, {
             "key": "ctrl-u r",
             "command": "stgit.refreshSpecific",
-            "when": "resourceScheme == stgit && editorTextFocus"
+            "when": "resourceScheme == stgit && editorTextFocus && !commentEditorFocused"
         }, {
             "key": "g",
             "command": "stgit.reload",
-            "when": "resourceScheme == stgit && editorTextFocus"
+            "when": "resourceScheme == stgit && editorTextFocus && !commentEditorFocused"
             }, {
             "key": "ctrl-u g",
             "command": "stgit.repair",
-            "when": "resourceScheme == stgit && editorTextFocus"
+            "when": "resourceScheme == stgit && editorTextFocus && !commentEditorFocused"
         }, {
             "key": "shift+g",
             "command": "stgit.gotoPatch",
-            "when": "resourceScheme == stgit && editorTextFocus"
+            "when": "resourceScheme == stgit && editorTextFocus && !commentEditorFocused"
         }, {
             "key": "shift+p",
             "command": "stgit.pushOrPopPatches",
-            "when": "resourceScheme == stgit && editorTextFocus"
+            "when": "resourceScheme == stgit && editorTextFocus && !commentEditorFocused"
         }, {
             "key": "shift+.",
             "command": "stgit.pushNextPatch",
-            "when": "resourceScheme == stgit && editorTextFocus"
+            "when": "resourceScheme == stgit && editorTextFocus && !commentEditorFocused"
         }, {
             "key": "shift+,",
             "command": "stgit.popCurrentPatch",
-            "when": "resourceScheme == stgit && editorTextFocus"
+            "when": "resourceScheme == stgit && editorTextFocus && !commentEditorFocused"
         }, {
             "key": "shift+h",
             "command": "stgit.setHistorySize",
-            "when": "resourceScheme == stgit && editorTextFocus"
+            "when": "resourceScheme == stgit && editorTextFocus && !commentEditorFocused"
         }, {
             "key": "shift+m",
             "command": "stgit.movePatchesTo",
-            "when": "resourceScheme == stgit && editorTextFocus"
+            "when": "resourceScheme == stgit && editorTextFocus && !commentEditorFocused"
         }, {
             "key": "shift+b",
             "command": "stgit.switchBranch",
-            "when": "resourceScheme == stgit && editorTextFocus"
+            "when": "resourceScheme == stgit && editorTextFocus && !commentEditorFocused"
         }, {
             "key": "f",
             "command": "stgit.highlightFile",
-            "when": "resourceScheme == stgit && editorTextFocus"
+            "when": "resourceScheme == stgit && editorTextFocus && !commentEditorFocused"
         }, {
             "key": "shift+f",
             "command": "stgit.cancelHighlighting",
-            "when": "resourceScheme == stgit && editorTextFocus"
+            "when": "resourceScheme == stgit && editorTextFocus && !commentEditorFocused"
         }, {
             "key": "u",
             "command": "stgit.unmarkPatch",
-            "when": "resourceScheme == stgit && editorTextFocus"
+            "when": "resourceScheme == stgit && editorTextFocus && !commentEditorFocused"
         }, {
             "key": "m",
             "command": "stgit.markPatch",
-            "when": "resourceScheme == stgit && editorTextFocus"
+            "when": "resourceScheme == stgit && editorTextFocus && !commentEditorFocused"
         }, {
             "key": "i",
             "command": "stgit.toggleChanges",
-            "when": "resourceScheme == stgit && editorTextFocus"
+            "when": "resourceScheme == stgit && editorTextFocus && !commentEditorFocused"
         }, {
             "key": "shift+u",
             "command": "stgit.revertChanges",
-            "when": "resourceScheme == stgit && editorTextFocus"
+            "when": "resourceScheme == stgit && editorTextFocus && !commentEditorFocused"
         }, {
             "key": "ctrl+c ctrl+b",
             "command": "stgit.rebase",
-            "when": "resourceScheme == stgit && editorTextFocus"
+            "when": "resourceScheme == stgit && editorTextFocus && !commentEditorFocused"
         }, {
             "key": "ctrl+shift+-",
             "command": "stgit.undo",
-            "when": "resourceScheme == stgit && editorTextFocus"
+            "when": "resourceScheme == stgit && editorTextFocus && !commentEditorFocused"
         }, {
             "key": "ctrl+u ctrl+shift+-",
             "command": "stgit.hardUndo",
-            "when": "resourceScheme == stgit && editorTextFocus"
+            "when": "resourceScheme == stgit && editorTextFocus && !commentEditorFocused"
         }, {
             "key": "ctrl+c ctrl+shift+-",
             "command": "stgit.redo",
-            "when": "resourceScheme == stgit && editorTextFocus"
+            "when": "resourceScheme == stgit && editorTextFocus && !commentEditorFocused"
         }, {
             "key": "shift+n",
             "command": "stgit.newPatch",
-            "when": "resourceScheme == stgit && editorTextFocus"
+            "when": "resourceScheme == stgit && editorTextFocus && !commentEditorFocused"
         }, {
             "key": "c",
             "command": "stgit.createPatch",
-            "when": "resourceScheme == stgit && editorTextFocus"
+            "when": "resourceScheme == stgit && editorTextFocus && !commentEditorFocused"
         }, {
             "key": "ctrl-c ctrl-c",
             "command": "stgit.commitOrUncommitPatches",
-            "when": "resourceScheme == stgit && editorTextFocus"
+            "when": "resourceScheme == stgit && editorTextFocus && !commentEditorFocused"
         }, {
             "key": "h",
             "command": "stgit.help",
-            "when": "resourceScheme == stgit && editorTextFocus"
+            "when": "resourceScheme == stgit && editorTextFocus && !commentEditorFocused"
         }, {
             "key": "enter",
             "command": "stgit.toggleExpand",
-            "when": "resourceScheme == stgit && editorTextFocus"
+            "when": "resourceScheme == stgit && editorTextFocus && !commentEditorFocused"
         }, {
             "key": "t",
             "command": "stgit.toggleShowingUnknown",
-            "when": "resourceScheme == stgit && editorTextFocus"
+            "when": "resourceScheme == stgit && editorTextFocus && !commentEditorFocused"
         }, {
             "key": "shift+R",
             "command": "stgit.resolveConflict",
-            "when": "resourceScheme == stgit && editorTextFocus"
+            "when": "resourceScheme == stgit && editorTextFocus && !commentEditorFocused"
         }, {
             "key": "e",
             "command": "stgit.editCommitMessage",
-            "when": "resourceScheme == stgit && editorTextFocus"
+            "when": "resourceScheme == stgit && editorTextFocus && !commentEditorFocused"
         }, {
             "key": "shift+s",
             "command": "stgit.squashPatches",
-            "when": "resourceScheme == stgit && editorTextFocus"
+            "when": "resourceScheme == stgit && editorTextFocus && !commentEditorFocused"
         }, {
             "key": "shift+d",
             "command": "stgit.deletePatches",
-            "when": "resourceScheme == stgit && editorTextFocus"
+            "when": "resourceScheme == stgit && editorTextFocus && !commentEditorFocused"
         }, {
             "key": "shift+=",
             "command": "stgit.openDiffEditor",
-            "when": "resourceScheme == stgit && editorTextFocus"
+            "when": "resourceScheme == stgit && editorTextFocus && !commentEditorFocused"
         }, {
             "key": "=",
             "command": "stgit.showDiff",
-            "when": "resourceScheme == stgit && editorTextFocus"
+            "when": "resourceScheme == stgit && editorTextFocus && !commentEditorFocused"
         }, {
             "key": "alt-=",
             "command": "stgit.openDiff",
-            "when": "resourceScheme == stgit && editorTextFocus"
+            "when": "resourceScheme == stgit && editorTextFocus && !commentEditorFocused"
         }, {
             "key": "ctrl+c ctrl+i",
             "command": "stgit.open",
