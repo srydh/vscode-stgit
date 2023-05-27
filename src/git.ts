@@ -1,4 +1,4 @@
-// Copyright (C) 2022, Samuel Rydh <samuelrydh@gmail.com>
+// Copyright (C) 2022-2023, Samuel Rydh <samuelrydh@gmail.com>
 // This code is licensed under the BSD 2-Clause license.
 
 import { log } from "./extension";
