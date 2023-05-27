@@ -5,6 +5,9 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 -->
 
 ## 0.9.2 (unreleased)
+- Add support for setting the upstream branch
+- Add support for fetch and push operations
+- Report all errors also in the log
 
 ## 0.9.1 (2022-02-08)
 - Do not filter StGit error output when using StGit 2.x

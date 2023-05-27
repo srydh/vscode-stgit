@@ -320,6 +320,9 @@ class StGitDoc {
     private warnedAboutMissingStgBinary = false;
     private historySize = 5;
     private branchName: string | null = null;
+    private remoteName: string | null = null;
+    private remoteBranch: string | null = null;
+    private newUpstream = false;
 
     // start of history
     private baseSha: string | null = null;
@@ -436,6 +439,7 @@ class StGitDoc {
     }
     reload() {
         this.fetchBranchName();
+        this.fetchUpstreamSpec();
         this.reloadPatches();
         this.fetchHistory(this.historySize);
         this.reloadIndexAndWorkTree();
@@ -444,6 +448,24 @@ class StGitDoc {
     reloadIndexAndWorkTree() {
         this.reloadIndex();
         this.reloadWorkTree();
+    }
+    async fetchUpstreamSpec() {
+        if (this.newUpstream)
+            return;
+        const upstream = await run('git', [
+            'rev-parse', '--abbrev-ref', '--symbolic-full-name', '@{upstream}'],
+            { inhibitLogging: true });
+        const n = upstream.search("/");
+        const remote = upstream.slice(0, n);
+        const remoteBranch = upstream.slice(n + 1);
+        if (remote && remoteBranch) {
+            const dirty = (
+                this.remoteBranch !== remoteBranch
+                || this.remoteName !== remote);
+            this.remoteBranch = remoteBranch;
+            this.remoteName = remote;
+            this.notifyDirty();
+        }
     }
     async fetchBranchName() {
         const branch = await run('git', ['symbolic-ref', '--short', 'HEAD']);
@@ -837,6 +859,91 @@ class StGitDoc {
             this.reload();
         }
     }
+
+    async selectRemote() {
+        const remotes = (await run('git', ['remote'])).split("\n");
+        const remote = await window.showQuickPick(remotes, {
+            placeHolder: "Select remote"
+        });
+        if (remote) {
+            this.remoteName = remote.trim();
+            this.remoteBranch = null;
+            this.reload();
+        }
+    }
+
+    async selectUpstreamBranch() {
+        const clear = '$(close) Clear upstream setting';
+        const remotes = (await run('git', ['remote']))
+            .split("\n")
+            .map(r => `$(plus) ${r.trim()}: New upstream branch`);
+        const branches = (await run('git', ['branch', '-r']))
+            .split("\n")
+            .map(b => b.trim())
+            .filter(b => !b.includes(" "));
+        const upstream = await window.showQuickPick(
+            [clear, ...remotes, ...branches],
+            { placeHolder: "Select upstream branch" });
+        if (!upstream) {
+            return;
+        } else if (upstream.includes("Clear upstream")) {
+            this.remoteBranch = null;
+            await run('git', ['branch', '--unset-upstream']);
+        } else if (upstream.includes("$")) {
+            const n = upstream.search(":");
+            const s = upstream.search(" ");
+            const remote = upstream.slice(s + 1, n);
+            const branch = await window.showInputBox({
+                prompt: `${remote} branch name`,
+            });
+            if (!branch)
+                return;
+            this.remoteName = remote;
+            this.remoteBranch = branch;
+            this.newUpstream = true;
+        } else {
+            const n = upstream.search("/");
+            const remote = upstream.slice(0, n);
+            const branch = upstream.slice(n + 1);
+            if (!remote || !branch)
+                return;
+            this.remoteName = remote;
+            this.remoteBranch = branch;
+            this.newUpstream = false;
+            await runAndReportErrors('git', [
+                'branch', '--set-upstream-to',
+                `${this.remoteName}/${this.remoteBranch}`]);
+        }
+        this.reload();
+    }
+
+    async gitFetch() {
+        if (!this.remoteName)
+            await this.selectRemote();
+        if (this.remoteName) {
+            const result = await runAndReportErrors(
+                'git', ['fetch', this.remoteName]);
+            if (result.ecode === 0) {
+                log(`git fetch ${this.remoteName}: success`);
+            }
+        }
+    }
+
+    async gitPush(kind: 'force' | 'fast-forward') {
+        if (!this.remoteBranch)
+            await this.selectUpstreamBranch();
+        if (this.remoteBranch && this.remoteName) {
+            const forcePlus = kind === 'force' ? '+' : '';
+            const spec = `${forcePlus}HEAD:${this.remoteBranch}`;
+            const result = await runAndReportErrors(
+                'git', ['push', this.remoteName, spec],
+                { errorMsg: 'push failed' });
+            if (result.ecode === 0) {
+                log(`git push ${this.remoteName} ${spec}: success`);
+            }
+        }
+    }
+
     markPatch() {
         if (this.curPatch?.setMarked(true))
             this.notifyDirty();
@@ -1089,9 +1196,17 @@ class StGitDoc {
         return (col > 1) ? col - 1 : col + 1;
     }
 
+    private get upstreamString(): string {
+        if (this.remoteBranch && this.remoteName)
+            return ` <-> ${this.remoteName}/${this.remoteBranch}`;
+        if (this.remoteName)
+            return ` (${this.remoteName})`;
+        return '';
+    }
+
     get documentContents(): string {
         const b = this.branchName ?? this.baseSha?.slice(0, 16) ?? "<unknown>";
-        const lines = [`Branch: ${b}`, ""];
+        const lines = [`Branch: ${b}${this.upstreamString}`, ""];
         function pushVec(patches: Patch[]) {
             for (const p of patches) {
                 const patchLines = p.getLines();
@@ -1156,6 +1271,12 @@ class StGitMode {
             cmd('refreshSpecific', () => this.stgit?.refreshSpecific()),
             cmd('switchBranch', () => this.stgit?.switchBranch()),
             cmd('rebase', () => this.stgit?.rebase()),
+            cmd('gitFetch', () => this.stgit?.gitFetch()),
+            cmd('gitPush', () => this.stgit?.gitPush('fast-forward')),
+            cmd('gitForcePush', () => this.stgit?.gitPush('force')),
+            cmd('selectRemote', () => this.stgit?.selectRemote()),
+            cmd('selectUpstreamBranch',
+                () => this.stgit?.selectUpstreamBranch()),
             cmd('reload', () => this.stgit?.reload()),
             cmd('resolveConflict', () => this.stgit?.resolveConflict()),
             cmd('gotoPatch', () => this.stgit?.gotoPatch()),

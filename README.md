@@ -42,6 +42,5 @@ The StGit extension can be used together with the popular Vim mode for VsCode, b
 
 ## Release Notes
 
-### 0.9.0
-
-Initial release of the StGit extension.
+The latest release notes are available
+[here](https://github.com/srydh/vscode-stgit/blob/main/CHANGELOG.md).

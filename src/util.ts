@@ -18,6 +18,8 @@ interface RunOpts {
     env?: { [key: string]: string },
     cwd?: string,
     stdin?: string,
+    errorMsg?: string,
+    inhibitLogging?: boolean,
 }
 
 interface CommandResult {
@@ -69,7 +71,7 @@ export async function runCommand(
         proc.on('close', (code) => { exitCode = code ?? 1; resolve(); });
         proc.on('error', (err) => { exitCode = -1; resolve(); });
     });
-    if (exitCode !== 0)
+    if (exitCode !== 0 && !opts?.inhibitLogging)
         log(['[failed]', command, ...args].join(' '));
     const stdout = data.join('');
     return {
@@ -95,13 +97,20 @@ export async function runAndReportErrors(
 ): Promise<CommandResult> {
     const result = await runCommand(command, args, opts);
     if (result.ecode !== 0) {
-        if (await hasStGit2()) {
-            info(result.stderr);
+        let estr = result.stderr;
+        if (command === 'stg' && !await hasStGit2()) {
+            const m = estr.split("\n").filter(s => s.includes(':')).join("\n");
+            if (m)
+                estr = m;
+        }
+        if (opts?.errorMsg) {
+            info(opts.errorMsg);
+            log(estr);
         } else {
-            // StGit 1.x uses stderr for all output; extract the actual error
-            const m = result.stderr.split("\n").filter(
-                s => s.includes(':')).join("\n");
-            info(m || result.stderr);
+            const [part1, ...rest] = estr.split("\n");
+            info(part1);
+            if (rest.length !== 0)
+                log(rest.join("\n"));
         }
     }
     return result;

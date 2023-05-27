@@ -24,6 +24,10 @@ class StgitExtension {
     log(line: string): void {
         this.channel.appendLine(line);
     }
+
+    showChannel() {
+        this.channel.show(true);
+    }
 }
 
 export function log(obj: string, ...args: { toString: () => string }[]) {
@@ -32,7 +36,12 @@ export function log(obj: string, ...args: { toString: () => string }[]) {
 }
 
 export function info(msg: string) {
-    window.showInformationMessage(msg);
+    log(msg);
+    window.showInformationMessage(msg, 'Show Error').then((value) => {
+        if (value) {
+            StgitExtension.instance?.showChannel();
+        }
+    });
 }
 
 export function activate(context: vscode.ExtensionContext) {

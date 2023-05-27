@@ -9,10 +9,7 @@
     "categories": [
         "SCM Providers"
     ],
-    "activationEvents": [
-        "onCommand:stgit.open",
-        "onCommand:sdiff.openCurrentFileDiff"
-    ],
+    "activationEvents": [],
     "main": "./out/extension.js",
     "license": "BSD-2-Clause",
     "repository": {
@@ -329,6 +326,26 @@
         }, {
             "key": "ctrl+c ctrl+b",
             "command": "stgit.rebase",
+            "when": "resourceScheme == stgit && editorTextFocus && !commentEditorFocused"
+        }, {
+            "key": "ctrl+c f",
+            "command": "stgit.gitFetch",
+            "when": "resourceScheme == stgit && editorTextFocus && !commentEditorFocused"
+        }, {
+            "key": "ctrl+c p",
+            "command": "stgit.gitPush",
+            "when": "resourceScheme == stgit && editorTextFocus && !commentEditorFocused"
+        }, {
+            "key": "ctrl+c r",
+            "command": "stgit.selectRemote",
+            "when": "resourceScheme == stgit && editorTextFocus && !commentEditorFocused"
+        }, {
+            "key": "ctrl+c u",
+            "command": "stgit.selectUpstreamBranch",
+            "when": "resourceScheme == stgit && editorTextFocus && !commentEditorFocused"
+        }, {
+            "key": "ctrl+u p",
+            "command": "stgit.gitForcePush",
             "when": "resourceScheme == stgit && editorTextFocus && !commentEditorFocused"
         }, {
             "key": "ctrl+shift+-",
