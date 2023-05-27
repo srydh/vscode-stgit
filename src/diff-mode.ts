@@ -10,8 +10,11 @@ import { isUnmerged, updateIndex } from './git';
 import { runCommand } from './util';
 import { RepositoryInfo } from './repo';
 
-function locateLineInDoc(doc: vscode.TextDocument, needle: string,
-        metric: (number: number) => number): number | null {
+function locateLineInDoc(
+    doc: vscode.TextDocument,
+    needle: string,
+    metric: (number: number) => number,
+): number | null {
     let [result, lowest]: [number | null, number] = [null, Infinity];
     for (let i = 0; i < doc.lineCount; i++) {
         const m = metric(i);
@@ -25,7 +28,7 @@ class DiffHeader {
     constructor(
         public readonly fromPath: string,
         public readonly toPath: string,
-    ) {}
+    ) { }
 
     static fromLine(
         doc: vscode.TextDocument,
@@ -62,7 +65,7 @@ class HunkText {
         public readonly text: readonly string[],
         public readonly linemap: readonly number[],
         public readonly missingNewline: boolean,
-    ) {}
+    ) { }
 
     static fromSpec(
         hunkLines: string[],
@@ -91,7 +94,7 @@ class HunkText {
     }
 
     private matchesAtLine(
-        doc: {numLines: number, getLine: (line: number) => string},
+        doc: { numLines: number, getLine: (line: number) => string },
         line: number
     ) {
         if (line < 0 || line + this.text.length > doc.numLines)
@@ -155,7 +158,7 @@ class Hunk {
         public readonly fromText: HunkText,
         public readonly toText: HunkText,
         public readonly numHunkLines: number,
-    ) {}
+    ) { }
 
     static fromLine(doc: vscode.TextDocument, line: number): Hunk | null {
 
@@ -188,7 +191,7 @@ class Hunk {
         for (const t of texts) {
             const line = t.findInDoc(doc);
             if (line >= 0)
-                return {text: t, line: line};
+                return { text: t, line: line };
         }
         return null;
     }
@@ -196,6 +199,7 @@ class Hunk {
 
 class DiffMode {
     static instance: DiffMode | null;
+
     constructor(context: vscode.ExtensionContext) {
         function cmd(cmd: string, func: (editor: vscode.TextEditor) => void) {
             return commands.registerTextEditorCommand(`sdiff.${cmd}`, func);
@@ -214,9 +218,11 @@ class DiffMode {
         );
         subscriptions.push(this);
     }
+
     dispose() {
         DiffMode.instance = null;
     }
+
     private gotoHunk(lineIncrement: number) {
         const editor = window.activeTextEditor;
         if (!editor)
@@ -234,9 +240,11 @@ class DiffMode {
             }
         }
     }
+
     gotoPreviousHunk() {
         this.gotoHunk(-1);
     }
+
     gotoNextHunk() {
         this.gotoHunk(1);
     }
@@ -247,7 +255,7 @@ class DiffMode {
             editor.selection = new vscode.Selection(hunk.line, 0, hunk.line, 0);
     }
 
-    private async doApplyHunk(opts: {reverse: boolean}) {
+    private async doApplyHunk(opts: { reverse: boolean }) {
         const hunk = this.hunk;
         if (!hunk)
             return;
@@ -277,25 +285,28 @@ class DiffMode {
         const endPos = startPos.translate(fromText.text.length, 0);
         const range = new vscode.Range(startPos, endPos);
         docEditor.revealRange(range, vscode.TextEditorRevealType.InCenter);
-        const nl = (toText.missingNewline || !toText.text.length)? "" : "\n";
+        const nl = (toText.missingNewline || !toText.text.length) ? "" : "\n";
         docEditor.edit((builder) => {
             builder.replace(range, toText.text.join("\n") + nl);
         });
     }
+
     applyHunk() {
-        this.doApplyHunk({reverse: false});
+        this.doApplyHunk({ reverse: false });
     }
+
     revertHunk() {
-        this.doApplyHunk({reverse: true});
+        this.doApplyHunk({ reverse: true });
     }
-    private async stageOrUnstageHunk(opts: {stage: boolean}) {
+
+    private async stageOrUnstageHunk(opts: { stage: boolean }) {
         const hunk = this.hunk;
         const header = this.getHeader(hunk);
         if (!hunk || !header)
             return;
         const path = header.toPath;
         const indexResult = await runCommand(
-            'git', ['show', `:${path}`], {trim: false});
+            'git', ['show', `:${path}`], { trim: false });
         if (indexResult.ecode) {
             if (await isUnmerged(path))
                 info(`'${path}' is unmerged`);
@@ -324,16 +335,19 @@ class DiffMode {
         else if (toText.missingNewline && !fromText.missingNewline)
             lines.pop();
         const newContents = lines.join(usesCRLF ? '\r\n' : '\n');
-        await updateIndex(header.toPath, {data: newContents});
+        await updateIndex(header.toPath, { data: newContents });
         reloadIndexAndWorkTree();
         this.gotoNextHunk();
     }
+
     stageHunk() {
-        this.stageOrUnstageHunk({stage: true});
+        this.stageOrUnstageHunk({ stage: true });
     }
+
     unstageHunk() {
-        this.stageOrUnstageHunk({stage: false});
+        this.stageOrUnstageHunk({ stage: false });
     }
+
     async splitHunk(editor: vscode.TextEditor) {
         const SPLITS = /,splits=([0-9;]*)/;
         const uri = editor.document.uri;
@@ -363,12 +377,13 @@ class DiffMode {
         }
         const splitsFrag = `,splits=${splits.join(";")}`;
         const newFrag = frag.replace(SPLITS, "") + splitsFrag;
-        const newUri = uri.with({fragment: newFrag});
+        const newUri = uri.with({ fragment: newFrag });
         refreshDiff(newUri);
         openAndShowDiffDocument(newUri, {
             selection: new vscode.Selection(curLine, 0, curLine, 0),
         });
     }
+
     async openFile() {
         const hunk = this.hunk;
         const doc = await this.getSourceDoc(hunk);
@@ -395,10 +410,12 @@ class DiffMode {
             });
         }
     }
+
     help() {
         commands.executeCommand(
             "workbench.action.quickOpen", ">SDiff: ");
     }
+
     async getSourceDoc(hunk: Hunk | null): Promise<vscode.TextDocument | null> {
         const header = this.getHeader(hunk);
         const repo = await RepositoryInfo.lookup();
@@ -406,6 +423,7 @@ class DiffMode {
             return null;
         return workspace.openTextDocument(repo.getPathUri(header.toPath));
     }
+
     private findHunk(doc: vscode.TextDocument, line: number) {
         for (let i = line; i >= 0; i--) {
             if (doc.lineAt(i).text.startsWith("@@")) {
@@ -422,6 +440,7 @@ class DiffMode {
         }
         return null;
     }
+
     private get hunk(): Hunk | null {
         const editor = window.activeTextEditor;
         if (editor) {
@@ -430,6 +449,7 @@ class DiffMode {
         }
         return null;
     }
+
     private getHeader(hunk: Hunk | null): DiffHeader | null {
         const editor = window.activeTextEditor;
         if (editor) {

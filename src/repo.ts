@@ -11,7 +11,7 @@ export class RepositoryInfo {
     private constructor(
         public readonly gitDir: string,
         public readonly topLevelDir: string,
-    ) {}
+    ) { }
 
     getPathUri(path: string): vscode.Uri {
         return vscode.Uri.joinPath(vscode.Uri.file(this.topLevelDir), path);
@@ -22,11 +22,13 @@ export class RepositoryInfo {
             cwd: path,
         });
     }
+
     private static async findGitDir(path: string) {
         return await run('git', ['rev-parse', '--absolute-git-dir'], {
             cwd: path,
         });
     }
+
     private static async create() {
         const ws = workspace.workspaceFolders?.[0].uri.path;
         if (ws) {
@@ -39,6 +41,7 @@ export class RepositoryInfo {
         }
         return null;
     }
+
     static lookup(): Promise<RepositoryInfo | null> {
         if (!this.repoPromise)
             this.repoPromise = this.create();

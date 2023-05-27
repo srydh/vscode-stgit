@@ -14,7 +14,7 @@ export async function isUnmerged(path: string) {
 
 export async function updateIndex(
     path: string,
-    contents: {data?: string, mode?: string}
+    contents: { data?: string, mode?: string }
 ) {
     let mode: string | undefined;
     let sha: string | undefined;
@@ -60,7 +60,7 @@ export async function uncommitFiles(files?: string[]) {
                 GIT_WORK_TREE: tempDir,
                 GIT_DIR: repo.gitDir,
             };
-            await runCommand('stg', ['refresh', '-i'], {env});
+            await runCommand('stg', ['refresh', '-i'], { env });
         });
     } else {
         // StGit 2.0+ does not have the issue above. The code above does

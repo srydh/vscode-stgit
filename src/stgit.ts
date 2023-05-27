@@ -17,7 +17,7 @@ interface IndexStageInfo {
     sha: string;
     stage: number
 }
-type DeltaKind = keyof(typeof Delta.STATUS_MESSAGE);
+type DeltaKind = keyof (typeof Delta.STATUS_MESSAGE);
 
 class Delta {
     private indexStageInfo: IndexStageInfo[] = [];
@@ -43,7 +43,7 @@ class Delta {
         private readonly score: string,
         readonly path: string,
         readonly destPath: string | undefined,
-    ) {}
+    ) { }
 
     attachIndexStageInfo(stageInfo: IndexStageInfo[]) {
         this.indexStageInfo = stageInfo;
@@ -90,7 +90,7 @@ class Delta {
     }
     static fromDiff(diffOutput: string): Delta[] {
         const entries: Delta[] = [];
-        for (let s = diffOutput;;) {
+        for (let s = diffOutput; ;) {
             const i0 = s.indexOf('\0');
             const spec = s.slice(1, i0);
             const [sMode, dMode, srcSha, destSha, status] = spec.split(" ");
@@ -137,7 +137,7 @@ abstract class Patch {
         public readonly kind: '+' | '-' | 'H' | 'I' | 'W',
         public readonly empty: boolean,
         private readonly symbol: "+" | "-" | ">" | " " = " ",
-    ) {}
+    ) { }
 
     async updateFromOld(old: Patch) {
         this.marked = old.marked;
@@ -362,10 +362,10 @@ class StGitDoc {
                     this.mainViewColumn = ev.viewColumn;
             }),
             getStGitConfig().onDidChangeConfiguration(() => {
-                this.updateConfiguration({reload: true});
+                this.updateConfiguration({ reload: true });
             })
         );
-        this.updateConfiguration({reload: false});
+        this.updateConfiguration({ reload: false });
         this.reload();
         this.openInitialEditor();
     }
@@ -374,10 +374,15 @@ class StGitDoc {
     }
 
     private get patches() {
-        return [...this.history, ...this.applied,
-            this.index, this.workTree, ...this.popped];
+        return [
+            ...this.history,
+            ...this.applied,
+            this.index,
+            this.workTree,
+            ...this.popped,
+        ];
     }
-    private updateConfiguration(opt: {reload: boolean}) {
+    private updateConfiguration(opt: { reload: boolean }) {
         const config = getStGitConfig();
         this.unknownFilesVisible = config.showUnknownFiles;
         if (opt.reload)
@@ -460,7 +465,7 @@ class StGitDoc {
         }
     }
     async checkForRepair() {
-        const top = await run ('stg', ['top']);
+        const top = await run('stg', ['top']);
         const topArgs = top.length ? [top] : [];
         const stgHeadPromise = run('stg', ['id', '--', ...topArgs]);
         const gitHeadPromise = run('git', ['rev-parse', 'HEAD']);
@@ -521,7 +526,7 @@ class StGitDoc {
         if (p?.label)
             await runAndReportErrors('stg', ['goto', '--', p.label]);
         else if (p?.kind === 'H')
-            await runAndReportErrors('stg', ['pop', '-a', ]);
+            await runAndReportErrors('stg', ['pop', '-a',]);
         else
             return;
         this.reload();
@@ -569,7 +574,7 @@ class StGitDoc {
         this.reload();
     }
     private async openCommentEditor(
-            line: number, body: string, context: string) {
+        line: number, body: string, context: string) {
         const comment: vscode.Comment = {
             contextValue: context,
             body: body,
@@ -648,7 +653,8 @@ class StGitDoc {
         for (const e of editors) {
             // workaround for missing 'closeEditor' API:
             const opts: vscode.TextDocumentShowOptions = {
-                viewColumn: e.viewColumn, preview: true, preserveFocus: false};
+                viewColumn: e.viewColumn, preview: true, preserveFocus: false
+            };
             await vscode.window.showTextDocument(e.document.uri, opts);
             commands.executeCommand('workbench.action.closeActiveEditor');
         }
@@ -733,10 +739,10 @@ class StGitDoc {
         if (!delta.conflict)
             return "";
         const modes = [
-            {desc: '1 - Incoming Changes (base -> theirs)', mode: "13"},
-            {desc: '2 - Local Changes (base -> ours)', mode: "12"},
-            {desc: '3 - Our (ours -> work tree)', mode: "2"},
-            {desc: '4 - Theirs (theirs -> work tree)', mode: "3"},
+            { desc: '1 - Incoming Changes (base -> theirs)', mode: "13" },
+            { desc: '2 - Local Changes (base -> ours)', mode: "12" },
+            { desc: '3 - Our (ours -> work tree)', mode: "2" },
+            { desc: '4 - Theirs (theirs -> work tree)', mode: "3" },
         ];
         const labels = modes.map(s => s.desc);
         const s = await window.showQuickPick(labels, {
@@ -747,7 +753,7 @@ class StGitDoc {
         const mode = modes[labels.indexOf(s)].mode;
         return `,diffmode=${mode}`;
     }
-    async showDiffWithOpts(opts: {preserveFocus: boolean}) {
+    async showDiffWithOpts(opts: { preserveFocus: boolean }) {
         const delta = this.curChange;
         const patch = this.curPatch;
         const sha = await patch?.getSha();
@@ -787,10 +793,10 @@ class StGitDoc {
         }
     }
     showDiff() {
-        this.showDiffWithOpts({preserveFocus: true});
+        this.showDiffWithOpts({ preserveFocus: true });
     }
     openDiff() {
-        this.showDiffWithOpts({preserveFocus: false});
+        this.showDiffWithOpts({ preserveFocus: false });
     }
     async help() {
         vscode.commands.executeCommand(
@@ -1225,7 +1231,7 @@ class StGitMode {
         }
     }
     private get uri() {
-        return vscode.Uri.from({scheme: "stgit", path: "/StGit"});
+        return vscode.Uri.from({ scheme: "stgit", path: "/StGit" });
     }
 }
 

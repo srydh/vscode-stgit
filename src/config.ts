@@ -44,12 +44,12 @@ class StGitConfig {
     }
 
     private trackStGitVersion() {
-        let stgExecutable: string | null  = null;
+        let stgExecutable: string | null = null;
 
         const reportStGitVersion = async () => {
             if (this.stgitExecutable !== stgExecutable) {
                 stgExecutable = this.stgitExecutable;
-                const version = await getStGitVersion({forceRefresh: true});
+                const version = await getStGitVersion({ forceRefresh: true });
                 log(`StGit version: ${version}`);
             }
         };

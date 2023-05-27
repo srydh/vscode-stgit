@@ -15,16 +15,18 @@ class StgitExtension {
     constructor(context: vscode.ExtensionContext) {
         context.subscriptions.push(this);
     }
+
     dispose() {
         this.channel.dispose();
         StgitExtension.instance = null;
     }
+
     log(line: string): void {
         this.channel.appendLine(line);
     }
 }
 
-export function log(obj: string, ...args: {toString: () => string}[]) {
+export function log(obj: string, ...args: { toString: () => string }[]) {
     const s = [obj, ...args.map(s => s.toString())].join(' ');
     StgitExtension.instance?.log(s);
 }

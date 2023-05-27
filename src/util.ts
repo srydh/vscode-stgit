@@ -15,7 +15,7 @@ type Command = "stg" | "git";
 
 interface RunOpts {
     trim?: boolean,
-    env?: {[key: string]: string},
+    env?: { [key: string]: string },
     cwd?: string,
     stdin?: string,
 }
@@ -47,8 +47,8 @@ export async function runCommand(
 
     const cwd = opts?.cwd ?? (await RepositoryInfo.lookup())?.topLevelDir;
     if (!cwd)
-        return {stdout: "", stderr: "", ecode: -1};
-    const env = opts?.env ? {...process.env, ...opts.env} : undefined;
+        return { stdout: "", stderr: "", ecode: -1 };
+    const env = opts?.env ? { ...process.env, ...opts.env } : undefined;
     const stdinPipe = opts?.stdin ? 'pipe' : 'ignore';
     const proc = spawn(cmd, args, {
         cwd: cwd,
@@ -67,7 +67,7 @@ export async function runCommand(
     let exitCode = -1;
     await new Promise<void>((resolve, _) => {
         proc.on('close', (code) => { exitCode = code ?? 1; resolve(); });
-        proc.on('error', (err) => { exitCode = -1 ; resolve(); });
+        proc.on('error', (err) => { exitCode = -1; resolve(); });
     });
     if (exitCode !== 0)
         log(['[failed]', command, ...args].join(' '));
@@ -85,7 +85,7 @@ export async function runCommand(
  * @returns captured output or an empty string if process spawn failed
  */
 export async function run(
-        command: Command, args: string[], opts?: RunOpts
+    command: Command, args: string[], opts?: RunOpts
 ): Promise<string> {
     return (await runCommand(command, args, opts)).stdout;
 }
@@ -120,7 +120,7 @@ export async function withTempDir<X>(
     try {
         return await callback(tempDir);
     } finally {
-        fs.rm(tempDir, {recursive: true, force: true}, (err) => {/**/});
+        fs.rm(tempDir, { recursive: true, force: true }, (err) => {/**/ });
     }
 }
 

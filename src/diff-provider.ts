@@ -35,10 +35,12 @@ class DiffProvider {
             cmd('openCurrentFileDiff', () => this.openCurrentFileDiff()),
         );
     }
+
     dispose() {
         this.changeEmitter.dispose();
         DiffProvider.instance = null;
     }
+
     async openCurrentFileDiff() {
         const editor = window.activeTextEditor;
         if (!editor)
@@ -61,8 +63,9 @@ class DiffProvider {
 
     provideTextBlob(uri: vscode.Uri): Promise<string> {
         const sha = uri.fragment;
-        return run('git', ['show', sha], {trim: false});
+        return run('git', ['show', sha], { trim: false });
     }
+
     private fixHunkNumbering(lines: string[], hunkStart: number) {
         const REGEXP = /@@ [-]([0-9]*),[0-9]* [+]([0-9]*),[0-9]* @@(.*)/;
         const matches = lines[hunkStart].match(REGEXP);
@@ -93,6 +96,7 @@ class DiffProvider {
         }
         lines[hunkStart] = `@@ -${fStart},${fCnt} +${tStart},${tCnt} @@${rest}`;
     }
+
     private applyHunkSplitting(diff: string, splitSpec?: string): string {
         if (!splitSpec)
             return diff;
@@ -107,6 +111,7 @@ class DiffProvider {
 
         return diffLines.join('\n');
     }
+
     async provideDiff(uri: vscode.Uri): Promise<string> {
         const args = uri.fragment.split(',').map(
             s => (s + "=").split("=", 2) as [string, string]);
@@ -117,7 +122,7 @@ class DiffProvider {
         const file = d.get('file');
         const splits = d.get('splits');
         const diffmode = d.get('diffmode');
-        const noTrim = {trim: false};
+        const noTrim = { trim: false };
         let header: Promise<string> | null = null;
         if (file && diffmode) {
             switch (diffmode) {
@@ -159,7 +164,7 @@ export async function openAndShowDiffDocument(
 ) {
     const doc = await workspace.openTextDocument(uri);
     const newDoc = await vscode.languages.setTextDocumentLanguage(doc, 'diff');
-    window.showTextDocument(newDoc, {preview: true, ...opts});
+    window.showTextDocument(newDoc, { preview: true, ...opts });
     return newDoc;
 }
 
