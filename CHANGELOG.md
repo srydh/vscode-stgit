@@ -4,10 +4,11 @@
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 -->
 
-## 0.9.2 (unreleased)
+## 0.9.2 (2022-05-29)
 - Add support for setting the upstream branch
 - Add support for fetch and push operations
 - Report all errors also in the log
+- Add support for initiating GitHub pull requests after a push
 
 ## 0.9.1 (2022-02-08)
 - Do not filter StGit error output when using StGit 2.x

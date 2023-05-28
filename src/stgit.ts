@@ -932,14 +932,25 @@ class StGitDoc {
     async gitPush(kind: 'force' | 'fast-forward') {
         if (!this.remoteBranch)
             await this.selectUpstreamBranch();
-        if (this.remoteBranch && this.remoteName) {
-            const forcePlus = kind === 'force' ? '+' : '';
-            const spec = `${forcePlus}HEAD:${this.remoteBranch}`;
-            const result = await runAndReportErrors(
-                'git', ['push', this.remoteName, spec],
-                { errorMsg: 'push failed' });
-            if (result.ecode === 0) {
-                log(`git push ${this.remoteName} ${spec}: success`);
+        if (!this.remoteBranch || !this.remoteName)
+            return;
+        const forcePlus = kind === 'force' ? '+' : '';
+        const spec = `${forcePlus}HEAD:${this.remoteBranch}`;
+        const result = await runAndReportErrors(
+            'git', ['push', this.remoteName, spec],
+            { errorMsg: 'push failed' });
+        if (result.ecode !== 0)
+            return;
+        log(`git push ${this.remoteName} ${spec}: success`);
+        if (result.stderr.includes("Create a pull request")) {
+            const link = result.stderr.split("\n").filter(
+                s => s.startsWith("remote:") && s.includes("https:"))[0];
+            const response = await window.showInformationMessage(
+                "Create a GitHub pull request?", "Create");
+            if (response === 'Create') {
+                const n = link.search("https://");
+                const url = link.slice(n);
+                vscode.env.openExternal(vscode.Uri.parse(url.trim()));
             }
         }
     }
