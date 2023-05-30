@@ -5,7 +5,7 @@ import * as vscode from 'vscode';
 import { workspace, window, commands } from 'vscode';
 import { openAndShowDiffDocument, refreshDiff } from './diff-provider';
 import { run, runAndReportErrors, runCommand, sleep } from './util';
-import { log, info, showStatusMessage } from './extension';
+import { log, info, showStatusMessage, getUserConfirmation } from './extension';
 import { uncommitFiles } from './git';
 import { RepositoryInfo } from './repo';
 import { getStGitConfig } from './config';
@@ -937,6 +937,12 @@ class StGitDoc {
             return;
         const forcePlus = kind === 'force' ? '+' : '';
         const spec = `${forcePlus}HEAD:${this.remoteBranch}`;
+
+        const pushStr = kind == 'force' ? "Force-push": "Push";
+        const confirmationMsg = `${pushStr} ${spec} to ${this.remoteName}?`;
+        if (!await getUserConfirmation(confirmationMsg))
+            return;
+
         const result = await runAndReportErrors(
             'git', ['push', this.remoteName, spec],
             { errorMsg: 'push failed' });

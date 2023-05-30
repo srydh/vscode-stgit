@@ -40,6 +40,13 @@ export function showStatusMessage(message: string) {
     setTimeout(() => msg.dispose(), 2000);
 }
 
+export async function getUserConfirmation(prompt: string) {
+    const answer = await window.showQuickPick(['Yes', 'No'], {
+        'placeHolder': prompt,
+    });
+    return answer === 'Yes';
+}
+
 export function info(msg: string) {
     log(msg);
     window.showInformationMessage(msg, 'Show Error').then((value) => {
