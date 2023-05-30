@@ -952,9 +952,8 @@ class StGitDoc {
         if (result.stderr.includes("Create a pull request")) {
             const link = result.stderr.split("\n").filter(
                 s => s.startsWith("remote:") && s.includes("https:"))[0];
-            const response = await window.showInformationMessage(
-                "Create a GitHub pull request?", "Create");
-            if (response === 'Create') {
+            const s = `Create a GitHub pull request for ${this.remoteBranch}?`;
+            if (await getUserConfirmation(s)) {
                 const n = link.search("https://");
                 const url = link.slice(n);
                 vscode.env.openExternal(vscode.Uri.parse(url.trim()));
