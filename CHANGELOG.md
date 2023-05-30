@@ -6,6 +6,7 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 
 ## 0.9.3 (2023-05-30)
 - Add status bar messages at succesful push or fetch
+- Get a user confirmation before pushing a branch
 
 ## 0.9.2 (2023-05-29)
 - Add support for setting the upstream branch
