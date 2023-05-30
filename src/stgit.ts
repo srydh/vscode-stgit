@@ -1076,6 +1076,10 @@ class StGitDoc {
         this.reload();
     }
     async hardUndo() {
+        const msg = 'Perform a hard undo?' +
+            ' Files not checked in could potentially be overwritten.';
+        if (!await getUserConfirmation(msg))
+            return;
         await runAndReportErrors('stg', ['undo', '--hard']);
         this.reload();
     }

@@ -34,10 +34,6 @@ This extension contributes the following settings:
 
 ## Known Issues
 
-The tool is currently configured for "hardcore" users. I.e. no warnings
-before deleting patches etc (StGit comes with functionality to undo most
-operations though).
-
 The StGit extension can be used together with the popular Vim mode for VsCode, but there are currently a few key mapping conflicts for the StGit editor.
 
 ## Release Notes
