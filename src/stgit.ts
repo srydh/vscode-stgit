@@ -855,8 +855,12 @@ class StGitDoc {
             placeHolder: "Select upstream branch for rebase"
         });
         if (base) {
-            await runAndReportErrors('stg', ['rebase', '--', base]);
+            const result = await runAndReportErrors(
+                'stg', ['rebase', '--', base]);
             this.reload();
+            if (result.ecode === 0) {
+                showStatusMessage(`Rebased series on top of '${base}'`);
+            }
         }
     }
 
