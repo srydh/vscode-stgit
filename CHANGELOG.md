@@ -4,7 +4,10 @@
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 -->
 
-## 0.9.2 (2022-05-29)
+## 0.9.3 (2023-05-30)
+- Add status bar messages at succesful push or fetch
+
+## 0.9.2 (2023-05-29)
 - Add support for setting the upstream branch
 - Add support for fetch and push operations
 - Report all errors also in the log

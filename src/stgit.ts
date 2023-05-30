@@ -5,7 +5,7 @@ import * as vscode from 'vscode';
 import { workspace, window, commands } from 'vscode';
 import { openAndShowDiffDocument, refreshDiff } from './diff-provider';
 import { run, runAndReportErrors, runCommand, sleep } from './util';
-import { log, info } from './extension';
+import { log, info, showStatusMessage } from './extension';
 import { uncommitFiles } from './git';
 import { RepositoryInfo } from './repo';
 import { getStGitConfig } from './config';
@@ -927,6 +927,7 @@ class StGitDoc {
                 log(`git fetch ${this.remoteName}: success`);
             }
         }
+        showStatusMessage(`Fetched '${this.remoteName}'`);
     }
 
     async gitPush(kind: 'force' | 'fast-forward') {
@@ -953,6 +954,7 @@ class StGitDoc {
                 vscode.env.openExternal(vscode.Uri.parse(url.trim()));
             }
         }
+        showStatusMessage(`Pushed '${this.remoteName}/${this.remoteBranch}'`);
     }
 
     markPatch() {

@@ -35,6 +35,11 @@ export function log(obj: string, ...args: { toString: () => string }[]) {
     StgitExtension.instance?.log(s);
 }
 
+export function showStatusMessage(message: string) {
+    const msg = window.setStatusBarMessage(message);
+    setTimeout(() => msg.dispose(), 2000);
+}
+
 export function info(msg: string) {
     log(msg);
     window.showInformationMessage(msg, 'Show Error').then((value) => {
