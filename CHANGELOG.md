@@ -4,6 +4,10 @@
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 -->
 
+## 0.9.4 (2023-05-31)
+- Make all commands show up in the built-in help. Previously,
+some commands were missing (like rebase, fetch and push).
+
 ## 0.9.3 (2023-05-30)
 - Add status bar messages at successful push or fetch
 - Get user confirmation before pushing a branch

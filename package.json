@@ -143,6 +143,30 @@
             "category": "StGit",
             "title": "Switch Branch"
         }, {
+            "command": "stgit.rebase",
+            "category": "StGit",
+            "title": "Rebase Patch Series"
+        }, {
+            "command": "stgit.gitPush",
+            "category": "StGit",
+            "title": "Push Changes"
+        }, {
+            "command": "stgit.gitForcePush",
+            "category": "StGit",
+            "title": "Push Changes"
+        }, {
+            "command": "stgit.gitFetch",
+            "category": "StGit",
+            "title": "Fetch Changes From Remote"
+        }, {
+            "command": "stgit.selectRemote",
+            "category": "StGit",
+            "title": "Select Remote"
+        }, {
+            "command": "stgit.selectUpstreamBranch",
+            "category": "StGit",
+            "title": "Select Upstream Branch"
+        }, {
             "command": "stgit.highlightFile",
             "category": "StGit",
             "title": "Highlight Patches Modifying File"
