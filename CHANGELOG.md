@@ -4,6 +4,9 @@
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 -->
 
+## 0.9.5 (2023-06-08)
+- Fix a bug where the upstream setting was not always updated at branch switch
+
 ## 0.9.4 (2023-05-31)
 - Make all commands show up in the built-in help. Previously,
 some commands were missing (like rebase, fetch and push).

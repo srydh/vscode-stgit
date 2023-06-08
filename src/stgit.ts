@@ -456,12 +456,9 @@ class StGitDoc {
             'rev-parse', '--abbrev-ref', '--symbolic-full-name', '@{upstream}'],
             { inhibitLogging: true });
         const n = upstream.search("/");
-        const remote = upstream.slice(0, n);
-        const remoteBranch = upstream.slice(n + 1);
-        if (remote && remoteBranch) {
-            const dirty = (
-                this.remoteBranch !== remoteBranch
-                || this.remoteName !== remote);
+        const remote = upstream.slice(0, n) || this.remoteName;
+        const remoteBranch = upstream.slice(n + 1) || null;
+        if (this.remoteBranch !== remoteBranch || this.remoteName !== remote) {
             this.remoteBranch = remoteBranch;
             this.remoteName = remote;
             this.notifyDirty();
@@ -841,6 +838,7 @@ class StGitDoc {
         });
         if (branch) {
             await runAndReportErrors('git', ['switch', branch]);
+            this.newUpstream = false;
             this.reload();
         }
     }
