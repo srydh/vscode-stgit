@@ -4,6 +4,8 @@
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 -->
 
+## 0.9.6 (not released)
+
 ## 0.9.5 (2023-06-08)
 - Fix a bug where the upstream setting was not always updated at branch switch
 
