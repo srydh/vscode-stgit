@@ -441,7 +441,7 @@
             "when": "!terminalFocus"
         }, {
             "key": "ctrl+c ctrl+c",
-            "command": "workbench.action.submitComment",
+            "command": "editor.action.submitComment",
             "when": "resourceScheme == stgit && commentEditorFocused"
         }, {
             "key": "escape",

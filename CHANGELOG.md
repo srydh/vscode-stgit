@@ -5,6 +5,8 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 -->
 
 ## 0.9.6 (not released)
+- Restore functionality of the C-c C-c keyboard shortcut
+which dismisses the commit editor and performs the commit. The shortcut was broken by a namechange in the latest VSCode release.
 
 ## 0.9.5 (2023-06-08)
 - Fix a bug where the upstream setting was not always updated at branch switch
