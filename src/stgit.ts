@@ -830,17 +830,27 @@ class StGitDoc {
             info("Work tree and index must be clean to switch branch");
             return;
         }
-        const branches = run('git', ['branch']).then<string[]>((s) => {
+        const create = '$(plus) Create new branch';
+        const branches = (await run('git', ['branch']).then<string[]>((s) => {
             return s.split("\n").map(s => s.replace(/^[*+]/, "").trim());
-        });
-        const branch = await window.showQuickPick(branches, {
+        }));
+        const branch = await window.showQuickPick([create, ...branches], {
             placeHolder: "Select branch to checkout"
         });
-        if (branch) {
+        if (!branch) {
+            return;
+        } else if (branch.includes('Create new branch')) {
+            const branch = await window.showInputBox({
+                prompt: `Enter branch name`,
+            });
+            if (!branch)
+                return;
+            await runAndReportErrors('git', ['switch', '-c', branch]);
+        } else if (branch) {
             await runAndReportErrors('git', ['switch', branch]);
-            this.newUpstream = false;
-            this.reload();
         }
+        this.newUpstream = false;
+        this.reload();
     }
     private async allBranches() {
         const local = (await run('git', ['branch'])).split("\n");
@@ -940,7 +950,7 @@ class StGitDoc {
         const forcePlus = kind === 'force' ? '+' : '';
         const spec = `${forcePlus}HEAD:${this.remoteBranch}`;
 
-        const pushStr = kind == 'force' ? "Force-push": "Push";
+        const pushStr = kind == 'force' ? "Force-push" : "Push";
         const confirmationMsg = `${pushStr} ${spec} to ${this.remoteName}?`;
         if (!await getUserConfirmation(confirmationMsg))
             return;
