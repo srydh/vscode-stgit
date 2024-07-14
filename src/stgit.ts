@@ -613,7 +613,16 @@ class StGitDoc {
         thread.contextValue = context;
         thread.canReply = false;
         thread.collapsibleState = vscode.CommentThreadCollapsibleState.Expanded;
+        thread.state = vscode.CommentThreadState.Unresolved;
         this.commentThread = thread;
+
+        // This is necessary in order to get focus on the comment editor
+        commands.executeCommand('editor.action.nextCommentThreadAction');
+
+        // The following is a workaround of a focus issue where the
+        // comment box does not receive focus as it should.
+        commands.executeCommand('workbench.action.files.newUntitledFile');
+        commands.executeCommand('workbench.action.closeActiveEditor');
 
         // It is difficult to determine when comment editor is really visible.
         // This is a workaround which works well in practice.
