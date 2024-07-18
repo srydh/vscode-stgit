@@ -617,12 +617,13 @@ class StGitDoc {
         this.commentThread = thread;
 
         // This is necessary in order to get focus on the comment editor
-        commands.executeCommand('editor.action.nextCommentThreadAction');
+        await commands.executeCommand('editor.action.nextCommentThreadAction');
 
         // The following is a workaround of a focus issue where the
-        // comment box does not receive focus as it should.
-        commands.executeCommand('workbench.action.files.newUntitledFile');
-        commands.executeCommand('workbench.action.closeActiveEditor');
+        // comment box does not receive focus as it should. Switching views
+        // fixes things.
+        await this.temporarySwitchFocus();
+        await this.focusWindow();
 
         // It is difficult to determine when comment editor is really visible.
         // This is a workaround which works well in practice.
@@ -674,6 +675,14 @@ class StGitDoc {
             preview: false,
             viewColumn: this.mainViewColumn,
         });
+    }
+    private async temporarySwitchFocus() {
+        const emptyUri = this.doc.uri.with({ fragment: "empty" });
+        const doc = await workspace.openTextDocument(emptyUri);
+        await window.showTextDocument(doc, {
+            viewColumn: this.mainViewColumn,
+        });
+        commands.executeCommand('workbench.action.closeActiveEditor');
     }
     async closeAllDiffEditors() {
         const editors = window.visibleTextEditors.filter(
@@ -1296,6 +1305,8 @@ class StGitMode {
         const provider: vscode.TextDocumentContentProvider = {
             onDidChange: this.changeEmitter.event,
             provideTextDocumentContent: (uri: vscode.Uri, token) => {
+                if (uri.fragment === "empty")
+                    return "EMPTY";
                 return this.stgit?.documentContents ?? "\nIndex\n";
             }
         };

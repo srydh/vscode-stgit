@@ -4,7 +4,8 @@
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 -->
 
-## 0.9.7 (not released)
+## 0.9.7 (2024-07-18)
+- Make the workaround for a comment editor focus issue more robust
 
 ## 0.9.6 (2024-07-15)
 - Restore functionality of the C-c C-c keyboard shortcut
