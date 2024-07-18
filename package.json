@@ -2,7 +2,7 @@
     "name": "stgit",
     "displayName": "StGit",
     "description": "Git patch management tool using StGit",
-    "version": "0.9.7",
+    "version": "0.9.8",
     "engines": {
         "vscode": "^1.78.0"
     },
