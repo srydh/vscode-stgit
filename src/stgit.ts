@@ -612,18 +612,14 @@ class StGitDoc {
         thread.label = 'Enter commit message:';
         thread.contextValue = context;
         thread.canReply = false;
-        thread.collapsibleState = vscode.CommentThreadCollapsibleState.Expanded;
+        thread.collapsibleState =
+            vscode.CommentThreadCollapsibleState.Collapsed;
         thread.state = vscode.CommentThreadState.Unresolved;
         this.commentThread = thread;
 
-        // This is necessary in order to get focus on the comment editor
-        await commands.executeCommand('editor.action.nextCommentThreadAction');
-
-        // The following is a workaround of a focus issue where the
-        // comment box does not receive focus as it should. Switching views
-        // fixes things.
-        await this.temporarySwitchFocus();
-        await this.focusWindow();
+        const delay = vscode.env.remoteName ? 400 : 200;
+        await sleep(delay);
+        await commands.executeCommand('workbench.action.expandAllComments');
 
         // It is difficult to determine when comment editor is really visible.
         // This is a workaround which works well in practice.
@@ -675,14 +671,6 @@ class StGitDoc {
             preview: false,
             viewColumn: this.mainViewColumn,
         });
-    }
-    private async temporarySwitchFocus() {
-        const emptyUri = this.doc.uri.with({ fragment: "empty" });
-        const doc = await workspace.openTextDocument(emptyUri);
-        await window.showTextDocument(doc, {
-            viewColumn: this.mainViewColumn,
-        });
-        commands.executeCommand('workbench.action.closeActiveEditor');
     }
     async closeAllDiffEditors() {
         const editors = window.visibleTextEditors.filter(
@@ -1305,8 +1293,6 @@ class StGitMode {
         const provider: vscode.TextDocumentContentProvider = {
             onDidChange: this.changeEmitter.event,
             provideTextDocumentContent: (uri: vscode.Uri, token) => {
-                if (uri.fragment === "empty")
-                    return "EMPTY";
                 return this.stgit?.documentContents ?? "\nIndex\n";
             }
         };

@@ -4,7 +4,8 @@
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 -->
 
-## 0.9.8 (unreleased)
+## 0.9.8 (2024-11-16)
+- Yet another try to workaround the comment editor focus issue
 
 ## 0.9.7 (2024-07-18)
 - Make the workaround for a comment editor focus issue more robust
