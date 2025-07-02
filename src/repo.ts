@@ -29,22 +29,23 @@ export class RepositoryInfo {
         });
     }
 
-    private static async create() {
-        const ws = workspace.workspaceFolders?.[0].uri.path;
-        if (ws) {
-            const [topDir, gitDir] = await Promise.all([
-                this.findTopLevelDir(ws),
-                this.findGitDir(ws),
-            ]);
-            if (topDir && gitDir)
-                return new RepositoryInfo(gitDir, topDir);
-        }
+    private static async create(ws: string) {
+        const [topDir, gitDir] = await Promise.all([
+            this.findTopLevelDir(ws),
+            this.findGitDir(ws),
+        ]);
+        if (topDir && gitDir)
+            return new RepositoryInfo(gitDir, topDir);
         return null;
     }
 
-    static lookup(): Promise<RepositoryInfo | null> {
-        if (!this.repoPromise)
-            this.repoPromise = this.create();
+    static async lookup(): Promise<RepositoryInfo | null> {
+        if (!this.repoPromise) {
+            const ws_path = workspace.workspaceFolders?.[0].uri.path;
+            if (!ws_path)
+                return null;
+            this.repoPromise = this.create(ws_path);
+        }
         return this.repoPromise;
     }
 }
