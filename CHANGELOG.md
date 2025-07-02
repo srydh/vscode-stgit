@@ -4,7 +4,8 @@
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 -->
 
-## 0.9.9 (unreleased)
+## 0.9.9 (2025-07-02)
+- Add support for multiple workspaces
 
 ## 0.9.8 (2024-11-16)
 - Yet another try to workaround the comment editor focus issue
