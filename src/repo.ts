@@ -6,7 +6,8 @@ import { workspace } from 'vscode';
 import { run } from "./util";
 
 export class RepositoryInfo {
-    private static repoPromise: Promise<RepositoryInfo | null> | null = null;
+    private static repoCache =
+        new Map<string, Promise<RepositoryInfo | null>>();
 
     private constructor(
         public readonly gitDir: string,
@@ -39,13 +40,27 @@ export class RepositoryInfo {
         return null;
     }
 
-    static async lookup(): Promise<RepositoryInfo | null> {
-        if (!this.repoPromise) {
-            const ws_path = workspace.workspaceFolders?.[0].uri.path;
-            if (!ws_path)
-                return null;
-            this.repoPromise = this.create(ws_path);
+    private static getActiveWorkspaceFolder():
+        vscode.WorkspaceFolder | undefined {
+        const activeEditor = vscode.window.activeTextEditor;
+        if (!activeEditor) {
+            return workspace.workspaceFolders?.[0];
         }
-        return this.repoPromise;
+
+        return workspace.getWorkspaceFolder(activeEditor.document.uri);
+    }
+
+    static async lookup(): Promise<RepositoryInfo | null> {
+        const ws_path = this.getActiveWorkspaceFolder()?.uri.path;
+
+        if (!ws_path) {
+            return null;
+        }
+
+        if (!this.repoCache.has(ws_path)) {
+            this.repoCache.set(ws_path, this.create(ws_path));
+        }
+
+        return this.repoCache.get(ws_path)!;
     }
 }
