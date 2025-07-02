@@ -512,6 +512,6 @@
         "js-yaml": "^4.1.0",
         "mocha": "^10.0.0",
         "typescript": "^5.0.4",
-        "@vscode/vsce": "^2.30.0"
+        "@vscode/vsce": "^3.6.0"
     }
 }
