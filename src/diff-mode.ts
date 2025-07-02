@@ -418,7 +418,7 @@ class DiffMode {
 
     async getSourceDoc(hunk: Hunk | null): Promise<vscode.TextDocument | null> {
         const header = this.getHeader(hunk);
-        const repo = await RepositoryInfo.lookup();
+        const repo = await RepositoryInfo.getSelectedRepo();
         if (!header || !repo)
             return null;
         return workspace.openTextDocument(repo.getPathUri(header.toPath));

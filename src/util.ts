@@ -47,7 +47,8 @@ export async function runCommand(
     else
         throw new Error("Unexpected command");
 
-    const cwd = opts?.cwd ?? (await RepositoryInfo.lookup())?.topLevelDir;
+    const cwd = opts?.cwd
+        ?? (await RepositoryInfo.getSelectedRepo())?.topLevelDir;
     if (!cwd)
         return { stdout: "", stderr: "", ecode: -1 };
     const env = opts?.env ? { ...process.env, ...opts.env } : undefined;

@@ -8,6 +8,7 @@ import { run } from "./util";
 export class RepositoryInfo {
     private static repoCache =
         new Map<string, Promise<RepositoryInfo | null>>();
+    private static selectedRepo: Promise<RepositoryInfo | null> | null = null;
 
     private constructor(
         public readonly gitDir: string,
@@ -50,6 +51,10 @@ export class RepositoryInfo {
         return workspace.getWorkspaceFolder(activeEditor.document.uri);
     }
 
+    static async getSelectedRepo(): Promise<RepositoryInfo | null> {
+        return this.selectedRepo;
+    }
+
     static async lookup(): Promise<RepositoryInfo | null> {
         const ws_path = this.getActiveWorkspaceFolder()?.uri.path;
 
@@ -58,9 +63,12 @@ export class RepositoryInfo {
         }
 
         if (!this.repoCache.has(ws_path)) {
-            this.repoCache.set(ws_path, this.create(ws_path));
+            this.selectedRepo = this.create(ws_path);
+            this.repoCache.set(ws_path, this.selectedRepo);
+            return this.selectedRepo;
         }
 
-        return this.repoCache.get(ws_path)!;
+        this.selectedRepo = this.repoCache.get(ws_path)!;
+        return this.selectedRepo;
     }
 }
