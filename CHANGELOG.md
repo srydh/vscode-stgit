@@ -4,6 +4,8 @@
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 -->
 
+## 0.9.10 (unreleased)
+
 ## 0.9.9 (2025-07-02)
 - Add support for multiple workspaces
 
