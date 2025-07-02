@@ -40,7 +40,7 @@ export async function updateIndex(
 }
 
 export async function uncommitFiles(files?: string[]) {
-    const repo = await RepositoryInfo.lookup();
+    const repo = await RepositoryInfo.getSelectedRepo();
     if (!repo)
         return;
     const index = await run('git', ['write-tree']);
