@@ -831,6 +831,14 @@ class StGitDoc {
         await run('stg', ['new', '-m', 'New patch']);
         this.reload();
     }
+    async createBranch() {
+        const branch = await window.showInputBox({
+            prompt: `Enter branch name`,
+        });
+        if (!branch)
+            return;
+        await runAndReportErrors('git', ['switch', '-c', branch]);
+    }
     async switchBranch() {
         if (this.index.deltas.length || this.workTree.deltas.length) {
             info("Work tree and index must be clean to switch branch");
@@ -846,12 +854,7 @@ class StGitDoc {
         if (!branch) {
             return;
         } else if (branch.includes('Create new branch')) {
-            const branch = await window.showInputBox({
-                prompt: `Enter branch name`,
-            });
-            if (!branch)
-                return;
-            await runAndReportErrors('git', ['switch', '-c', branch]);
+            this.createBranch();
         } else if (branch) {
             await runAndReportErrors('git', ['switch', branch]);
         }
@@ -1309,6 +1312,7 @@ class StGitMode {
             cmd('refresh', () => this.stgit?.refresh()),
             cmd('repair', () => this.stgit?.repair()),
             cmd('refreshSpecific', () => this.stgit?.refreshSpecific()),
+            cmd('createBranch', () => this.stgit?.createBranch()),
             cmd('switchBranch', () => this.stgit?.switchBranch()),
             cmd('rebase', () => this.stgit?.rebase()),
             cmd('gitFetch', () => this.stgit?.gitFetch()),
