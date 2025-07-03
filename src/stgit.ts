@@ -838,6 +838,8 @@ class StGitDoc {
         if (!branch)
             return;
         await runAndReportErrors('git', ['switch', '-c', branch]);
+        this.newUpstream = false;
+        this.reload();
     }
     async switchBranch() {
         if (this.index.deltas.length || this.workTree.deltas.length) {
@@ -857,9 +859,9 @@ class StGitDoc {
             this.createBranch();
         } else if (branch) {
             await runAndReportErrors('git', ['switch', branch]);
+            this.newUpstream = false;
+            this.reload();
         }
-        this.newUpstream = false;
-        this.reload();
     }
     private async allBranches() {
         const local = (await run('git', ['branch'])).split("\n");
