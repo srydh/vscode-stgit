@@ -139,6 +139,10 @@
             "category": "StGit",
             "title": "Mark Merge Conflict as Resolved"
         }, {
+            "command": "stgit.createBranch",
+            "category": "StGit",
+            "title": "Create Branch"
+        }, {
             "command": "stgit.switchBranch",
             "category": "StGit",
             "title": "Switch Branch"
@@ -318,6 +322,10 @@
         }, {
             "key": "shift+m",
             "command": "stgit.movePatchesTo",
+            "when": "resourceScheme == stgit && editorTextFocus && !commentEditorFocused"
+        }, {
+            "key": "ctrl+c shift+b",
+            "command": "stgit.createBranch",
             "when": "resourceScheme == stgit && editorTextFocus && !commentEditorFocused"
         }, {
             "key": "shift+b",
