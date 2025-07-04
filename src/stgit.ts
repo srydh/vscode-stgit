@@ -837,7 +837,7 @@ class StGitDoc {
         });
         if (!branch)
             return;
-        await runAndReportErrors('git', ['switch', '-c', branch]);
+        await runAndReportErrors('stg', ['branch', '--create', branch]);
         this.newUpstream = false;
         this.reload();
     }
