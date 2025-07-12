@@ -1377,6 +1377,16 @@ class StGitMode {
     }
     private async openStgit() {
         if (this.stgit) {
+            const scheme = window.activeTextEditor?.document.uri.scheme || "";
+            const isInStgitBuffer = ['stgit', 'stgit-diff'].includes(scheme);
+            if (!isInStgitBuffer) {
+                const repo = await RepositoryInfo.lookup();
+                if (!repo) {
+                    info("Failed to find a GIT repository");
+                    return;
+                }
+                this.stgit.repo = repo;
+            }
             this.stgit.focusWindow();
             this.stgit.reload();
         } else {
