@@ -4,7 +4,11 @@
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 -->
 
-## 0.9.10 (unreleased)
+## 0.9.11 (unreleased)
+
+## 0.9.10 (2025-07-12)
+- Improve switching between workspaces
+- Add new "StGit: create branch" command (C-c S-b)
 
 ## 0.9.9 (2025-07-02)
 - Add support for multiple workspaces
